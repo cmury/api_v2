@@ -1,0 +1,29 @@
+# IMBY API — local development.
+#
+# Shares PostGIS with agents_v2 (imby_data_v2). Start agents_v2 first:
+#   cd ../agents_v2 && docker compose up -d
+#
+# Then:
+#   cp .env.example .env   # if needed
+#   docker compose up -d --build
+#   docker compose exec app php artisan key:generate   # first time only
+#
+# API: http://localhost:8001
+
+services:
+  app:
+    build: .
+    container_name: api-v2-app
+    working_dir: /var/www/html
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8001:8000"
+    networks:
+      - agents_v2_default
+    command: sh docker/app/entrypoint.sh
+
+networks:
+  agents_v2_default:
+    external: true
