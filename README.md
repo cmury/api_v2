@@ -2,7 +2,7 @@
 
 Laravel 13 JSON API for the IMBY product database (`imby_data_v2`).
 
-Warehouse / product schema is owned by **agents_v2** migrations. This app connects to the same PostGIS instance and exposes HTTP endpoints (Sanctum-ready).
+Warehouse / product schema (including Sanctum + password-reset tables) is owned by **agents_v2** migrations. This app connects to the same PostGIS instance and exposes HTTP endpoints only — no schema migrations here.
 
 ## Prerequisites
 
@@ -26,9 +26,21 @@ API base: [http://localhost:8001](http://localhost:8001)
 
 Smoke check: [http://localhost:8001/api/status](http://localhost:8001/api/status)
 
-## Notes
+## Auth (Sanctum)
 
-- App container joins the external Docker network `agents_v2_default` and reaches Postgres as host `postgis`.
-- Default DB connection is `data` → `imby_data_v2`.
-- Session/cache/queue use file/sync drivers so Laravel ops tables stay out of the warehouse unless you add them deliberately.
-- Sanctum is installed; auth routes/tokens come next.
+| Method | Path | Auth |
+|--------|------|------|
+| POST | `/api/auth/register` | public |
+| POST | `/api/auth/login` | public |
+| POST | `/api/auth/logout` | Bearer |
+| GET | `/api/auth/user` | Bearer |
+| PUT | `/api/auth/user` | Bearer |
+| POST | `/api/auth/password/change` | Bearer |
+| POST | `/api/auth/password/forgot` | public |
+| POST | `/api/auth/password/reset` | public |
+
+Register body: `name`, `surname`, `email`, `password`, `password_confirmation`, optional `company` / `mobile`.
+
+Login / protected routes use `Authorization: Bearer {token}`.
+
+Users live in `imby_data_v2.users` (schema owned by agents_v2).
