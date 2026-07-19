@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\DataDatabase;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,9 +24,6 @@ class User extends Authenticatable
         'password',
         'company',
         'is_verified',
-        'first_token',
-        'verification_code',
-        'password_reset_token',
         'stripe_id',
         'card_brand',
         'card_last_four',
@@ -34,9 +32,6 @@ class User extends Authenticatable
 
     protected $hidden = [
         'password',
-        'first_token',
-        'verification_code',
-        'password_reset_token',
     ];
 
     public function getConnectionName(): ?string
@@ -56,5 +51,15 @@ class User extends Authenticatable
     public function preferences(): HasOne
     {
         return $this->hasOne(UserPreference::class);
+    }
+
+    public function searches(): HasMany
+    {
+        return $this->hasMany(UserSearch::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(UserLog::class);
     }
 }

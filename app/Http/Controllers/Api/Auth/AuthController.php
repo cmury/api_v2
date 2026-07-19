@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserPreference;
+use App\Support\UserActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +18,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly UserActivityLogger $activityLogger,
+    ) {}
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::query()->create([
@@ -58,6 +62,8 @@ class AuthController extends Controller
         $user = Auth::user();
         $token = $user->createToken('api')->plainTextToken;
 
+        $this->activityLogger->log($user, UserActivityLogger::LOGIN);
+
         return response()->json([
             'message' => 'token_generated',
             'data' => [
@@ -70,30 +76,15 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        /** @var User $user */
+        $user = $request->user();
+
+        $this->activityLogger->log($user, UserActivityLogger::LOGOUT);
+
+        $user->currentAccessToken()->delete();
 
         return response()->json([
             'message' => 'token_invalidated',
-        ]);
-    }
-
-    public function user(Request $request): JsonResponse
-    {
-        return response()->json([
-            'message' => 'authenticated_user',
-            'data' => new UserResource($request->user()),
-        ]);
-    }
-
-    public function updateProfile(UpdateProfileRequest $request): JsonResponse
-    {
-        /** @var User $user */
-        $user = $request->user();
-        $user->update($request->validated());
-
-        return response()->json([
-            'message' => 'profile_updated',
-            'data' => new UserResource($user->fresh()),
         ]);
     }
 
@@ -111,6 +102,8 @@ class AuthController extends Controller
         $user->update([
             'password' => $request->string('password')->toString(),
         ]);
+
+        $this->activityLogger->log($user, UserActivityLogger::PASSWORD_CHANGED);
 
         $user->tokens()->delete();
         $token = $user->createToken('api')->plainTextToken;
