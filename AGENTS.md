@@ -28,6 +28,27 @@ repo. Run `agents_v2` migrations before expecting the API to work.
   `data.token`; pass it as `Authorization: Bearer <token>` to `/api/user/*` routes.
 
 ### Tests & lint
-- `php artisan test` passes (uses sqlite `:memory:` per `phpunit.xml`; only example tests exist —
-  they don't touch the Postgres `data` connection).
-- Lint: `./vendor/bin/pint` (check-only: `--test`; a few files report pre-existing style diffs).
+- `php artisan test` passes (uses sqlite `:memory:` per `phpunit.xml`). Tests are provider- and
+  Postgres-free: the `SqlGuard` logic is unit-tested and the insights endpoint tests only cover
+  auth + validation (the live LLM→SQL path is verified manually).
+- Lint: `./vendor/bin/pint` (check-only: `--test`; a few pre-existing files report style diffs).
+
+### AI insights feature (`laravel/ai` + local Llama via Ollama)
+- Endpoint: `POST /api/insights/ask` (Bearer auth) — body `{ "question": "..." }`. It uses the
+  `InsightsAgent` (structured output, temperature 0) to turn the question into a single read-only
+  SELECT, runs it through `App\Support\SqlGuard`, and executes it on the **`data_readonly`** connection.
+- Browser test page: `GET /insights` (`resources/views/insights.blade.php`) — a self-contained chat
+  UI that logs in via the API for a token and calls `/api/insights/ask`. Handy for manual testing.
+- Provider config lives in `config/ai.php`; defaults to the `ollama` provider + `OLLAMA_MODEL`
+  (see `.env.example`). Switching to a hosted provider only needs `AI_DEFAULT_PROVIDER` + that
+  provider's key — no code change.
+- Safety: `data_readonly` is a SELECT-only Postgres role (`imby_readonly`); `SqlGuard` additionally
+  enforces single read-only statement, row `LIMIT`, and blocks system catalogs. AI SDK conversation
+  migrations are intentionally NOT installed (keeps `api_v2` schema-less).
+- To run the live feature you need: Ollama running (`ollama serve`), a model pulled
+  (`ollama pull llama3.2:3b`), and the `imby_readonly` role granted SELECT on `imby_data_v2`.
+- Ollama gotcha on this VM class: the bundled runner auto-selects the AVX-512 `sapphirerapids`
+  ggml backend, which segfaults here (the Firecracker CPU advertises AVX-512 but faults on it).
+  Fix: move the AVX-512 backends out of `/usr/local/lib/ollama/` (`libggml-cpu-sapphirerapids.so`,
+  `skylakex`, `icelake`, `cascadelake`, `cooperlake`, `cannonlake`, `zen4`, `alderlake`) so it falls
+  back to the AVX2 `haswell` build, then restart `ollama serve`.
