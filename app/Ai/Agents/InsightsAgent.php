@@ -28,7 +28,8 @@ class InsightsAgent implements Agent, HasStructuredOutput
         read-only PostgreSQL SELECT query against ONLY the tables and columns below.
 
         Tables (schema "public"):
-        - authorities(id, name, region, state, tracking [boolean], lga_name, council_name)
+        - authorities(id, name, region, state, tracking [boolean], lga_name, council_name,
+          geom [PostGIS geography(MultiPolygon,4326) LGA boundary; may be NULL])
         - applications(id, authority_id, authority_no, portal_no, type, description,
           estimated_cost [numeric], submitted [date], decision, decision_date [date])
         - locations(id, suburb, state, post_code, formatted_address, street)
@@ -42,7 +43,12 @@ class InsightsAgent implements Agent, HasStructuredOutput
         Rules:
         - Output a SELECT (or WITH ... SELECT) query ONLY. Never write, update, or alter data.
         - Use ONLY the tables/columns listed above. Do not invent columns or reference system catalogs.
-        - Council/authority questions use ONLY `authorities` (has state, region, tracking).
+        - Always SELECT a human-readable identifier (e.g. `authorities.name`) alongside any computed
+          value so "which X" questions name the entity, not just a number.
+        - Council/authority questions use ONLY `authorities` (has state, region, tracking, geom).
+        - For area / size / "covers the greatest area" questions, use PostGIS `ST_Area(geom)`
+          (square metres) on `authorities`. Filter `geom IS NOT NULL`, `ORDER BY ST_Area(geom) DESC`,
+          and report area in km2 via `ROUND((ST_Area(geom)/1000000)::numeric, 0) AS area_km2`.
         - The `applications` table has NO suburb column. To filter developments by suburb, JOIN via
           the pivot, e.g.:
             SELECT a.description, a.estimated_cost, a.submitted, l.suburb
