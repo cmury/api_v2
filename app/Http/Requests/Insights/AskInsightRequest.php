@@ -18,6 +18,7 @@ class AskInsightRequest extends FormRequest
     {
         return [
             'question' => ['required', 'string', 'max:500'],
+            'thread_id' => ['nullable', 'integer'],
         ];
     }
 }

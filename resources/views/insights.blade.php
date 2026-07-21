@@ -13,19 +13,30 @@
         * { box-sizing: border-box; }
         body {
             margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-            background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, var(--bg) 55%);
-            color: var(--text); height: 100vh; display: flex; flex-direction: column;
+            background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column;
         }
         header {
             padding: 14px 20px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 12px; background: rgba(15,23,42,.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; gap: 12px; background: rgba(15,23,42,.7);
         }
         header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--err); box-shadow: 0 0 10px var(--err); }
         header .dot.on { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
-        header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+        header h1 { font-size: 15px; margin: 0; font-weight: 600; }
         header .sub { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+        .body { flex: 1; display: flex; min-height: 0; }
+        .sidebar { width: 250px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: rgba(30,41,59,.4); }
+        .sidebar.hidden { display: none; }
+        .sidebar .new { margin: 12px; padding: 9px 12px; background: var(--accent); color: #fff; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .sidebar .new:hover { background: var(--accent-2); }
+        .sidebar .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 4px 16px; }
+        .threads { overflow-y: auto; flex: 1; padding: 4px 8px 12px; }
+        .thread-item { padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .thread-item:hover { background: var(--panel-2); color: var(--text); }
+        .thread-item.active { background: var(--panel-2); color: var(--text); }
+
         main { flex: 1; overflow-y: auto; padding: 24px; }
-        .wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+        .wrap { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 
         .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
         .login h2 { margin: 0 0 4px; font-size: 16px; }
@@ -39,12 +50,9 @@
             border-radius: 10px; padding: 10px 12px; outline: none;
         }
         input:focus, textarea:focus { border-color: var(--accent); }
-        button {
-            background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 10px 16px;
-            cursor: pointer; font-weight: 600; transition: background .15s;
-        }
-        button:hover { background: var(--accent-2); }
-        button:disabled { opacity: .5; cursor: not-allowed; }
+        button.primary { background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; }
+        button.primary:hover { background: var(--accent-2); }
+        button.primary:disabled { opacity: .5; cursor: not-allowed; }
         .hint { color: var(--err); font-size: 13px; margin-top: 8px; min-height: 16px; }
 
         .msg { display: flex; gap: 10px; }
@@ -68,7 +76,7 @@
         @keyframes blink { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
 
         footer { border-top: 1px solid var(--border); padding: 14px 20px; background: rgba(15,23,42,.7); }
-        .composer { max-width: 860px; margin: 0 auto; display: flex; gap: 10px; }
+        .composer { max-width: 820px; margin: 0 auto; display: flex; gap: 10px; }
         .composer textarea { resize: none; height: 44px; max-height: 140px; }
         .hidden { display: none !important; }
     </style>
@@ -80,49 +88,58 @@
         <div class="sub" id="status-text">Not connected</div>
     </header>
 
-    <main>
-        <div class="wrap">
-            <div class="card login" id="login-card">
-                <h2>Connect to the API</h2>
-                <p>Log in to get a Bearer token, then ask questions about the planning data in plain English.</p>
-                <div class="row">
-                    <div class="field">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" value="grace@example.com" autocomplete="username">
-                    </div>
-                    <div class="field">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" value="Password123!" autocomplete="current-password">
-                    </div>
-                </div>
-                <div style="margin-top:14px" class="row">
-                    <button id="login-btn">Connect</button>
-                </div>
-                <div class="hint" id="login-hint"></div>
-            </div>
+    <div class="body">
+        <aside class="sidebar hidden" id="sidebar">
+            <button class="new" id="new-chat">+ New chat</button>
+            <div class="label">History</div>
+            <div class="threads" id="threads"></div>
+        </aside>
 
-            <div id="chat" class="hidden">
-                <div class="chips" id="chips">
-                    <div class="chip">How many authorities are there per state?</div>
-                    <div class="chip">Which states have the most councils with application tracking enabled?</div>
-                    <div class="chip">List 10 authorities in NSW with their region</div>
-                    <div class="chip">How many development types are there per development class?</div>
+        <main>
+            <div class="wrap">
+                <div class="card login" id="login-card">
+                    <h2>Connect to the API</h2>
+                    <p>Log in to get a Bearer token, then ask questions about the planning data in plain English.</p>
+                    <div class="row">
+                        <div class="field">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" value="grace@example.com" autocomplete="username">
+                        </div>
+                        <div class="field">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" value="Password123!" autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div style="margin-top:14px" class="row">
+                        <button class="primary" id="login-btn">Connect</button>
+                    </div>
+                    <div class="hint" id="login-hint"></div>
                 </div>
-                <div id="messages" style="margin-top:16px; display:flex; flex-direction:column; gap:16px;"></div>
+
+                <div id="chat" class="hidden">
+                    <div class="chips" id="chips">
+                        <div class="chip">How many authorities are there per state?</div>
+                        <div class="chip">In NSW which authority covers the greatest area?</div>
+                        <div class="chip">How many applications have been lodged in Mawson ACT?</div>
+                        <div class="chip">List 10 authorities in NSW with their region</div>
+                    </div>
+                    <div id="messages" style="margin-top:16px; display:flex; flex-direction:column; gap:16px;"></div>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <footer>
         <div class="composer">
             <textarea id="q" placeholder="Log in first, then ask a question…" disabled></textarea>
-            <button id="send" disabled>Ask</button>
+            <button class="primary" id="send" disabled>Ask</button>
         </div>
     </footer>
 
     @verbatim
     <script>
         let token = localStorage.getItem('imby_token') || null;
+        let currentThreadId = null;
 
         const dot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
@@ -130,15 +147,23 @@
         const loginBtn = document.getElementById('login-btn');
         const loginHint = document.getElementById('login-hint');
         const chat = document.getElementById('chat');
+        const chips = document.getElementById('chips');
         const messages = document.getElementById('messages');
         const qInput = document.getElementById('q');
         const sendBtn = document.getElementById('send');
+        const sidebar = document.getElementById('sidebar');
+        const threadsEl = document.getElementById('threads');
+
+        function authHeaders(extra) {
+            return Object.assign({ 'Accept': 'application/json', 'Authorization': 'Bearer ' + token }, extra || {});
+        }
 
         function setConnected(on) {
             dot.classList.toggle('on', on);
             statusText.textContent = on ? 'Connected' : 'Not connected';
             loginCard.classList.toggle('hidden', on);
             chat.classList.toggle('hidden', !on);
+            sidebar.classList.toggle('hidden', !on);
             qInput.disabled = !on;
             sendBtn.disabled = !on;
             qInput.placeholder = on ? 'Ask a question about the planning data…' : 'Log in first, then ask a question…';
@@ -146,28 +171,24 @@
 
         async function login() {
             loginHint.textContent = '';
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Connecting…';
+            loginBtn.disabled = true; loginBtn.textContent = 'Connecting…';
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify({
-                        email: document.getElementById('email').value,
-                        password: document.getElementById('password').value,
-                    }),
+                    body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }),
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'Login failed');
                 token = data.data.token;
                 localStorage.setItem('imby_token', token);
                 setConnected(true);
+                await loadThreads();
                 qInput.focus();
             } catch (e) {
                 loginHint.textContent = e.message;
             } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Connect';
+                loginBtn.disabled = false; loginBtn.textContent = 'Connect';
             }
         }
 
@@ -177,111 +198,128 @@
             if (html !== undefined) n.innerHTML = html;
             return n;
         }
-
         function escapeHtml(v) {
             return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
-        function addUser(text) {
-            const m = el('div', 'msg user');
-            m.appendChild(el('div', 'avatar', 'You'));
-            const b = el('div', 'bubble');
-            b.textContent = text;
-            m.appendChild(b);
-            messages.appendChild(m);
-            scroll();
-        }
-
-        function addBot() {
-            const m = el('div', 'msg bot');
-            m.appendChild(el('div', 'avatar', 'AI'));
-            const b = el('div', 'bubble');
-            b.appendChild(el('div', 'typing', '<span></span><span></span><span></span>'));
-            m.appendChild(b);
-            messages.appendChild(m);
-            scroll();
-            return b;
+        async function loadThreads() {
+            try {
+                const res = await fetch('/api/insights/threads', { headers: authHeaders() });
+                if (!res.ok) return;
+                const { data } = await res.json();
+                threadsEl.innerHTML = '';
+                (data || []).forEach(t => {
+                    const item = el('div', 'thread-item' + (t.id === currentThreadId ? ' active' : ''), escapeHtml(t.title || ('Thread ' + t.id)));
+                    item.title = t.title || '';
+                    item.addEventListener('click', () => openThread(t.id));
+                    threadsEl.appendChild(item);
+                });
+            } catch (e) { /* ignore */ }
         }
 
         function renderTable(rows) {
             if (!rows || rows.length === 0) return '<div class="meta">No rows returned.</div>';
             const cols = Object.keys(rows[0]);
             let h = '<table><thead><tr>' + cols.map(c => '<th>' + escapeHtml(c) + '</th>').join('') + '</tr></thead><tbody>';
-            for (const r of rows.slice(0, 100)) {
-                h += '<tr>' + cols.map(c => '<td>' + escapeHtml(r[c]) + '</td>').join('') + '</tr>';
-            }
+            for (const r of rows.slice(0, 100)) h += '<tr>' + cols.map(c => '<td>' + escapeHtml(r[c]) + '</td>').join('') + '</tr>';
             h += '</tbody></table>';
-            if (rows.length > 100) h += '<div class="meta">Showing first 100 of ' + rows.length + ' rows.</div>';
             return h;
         }
 
+        function addUser(text) {
+            const m = el('div', 'msg user');
+            m.appendChild(el('div', 'avatar', 'You'));
+            const b = el('div', 'bubble'); b.textContent = text; m.appendChild(b);
+            messages.appendChild(m); scroll();
+        }
+        function addBotTyping() {
+            const m = el('div', 'msg bot');
+            m.appendChild(el('div', 'avatar', 'AI'));
+            const b = el('div', 'bubble'); b.appendChild(el('div', 'typing', '<span></span><span></span><span></span>'));
+            m.appendChild(b); messages.appendChild(m); scroll(); return b;
+        }
+        function botAnswerHtml({ explanation, rows, row_count, sql, error }) {
+            let html = '';
+            if (explanation) html += '<p class="explain">' + escapeHtml(explanation) + '</p>';
+            if (!error) {
+                html += renderTable(rows);
+                if (row_count !== undefined) html += '<div class="meta">' + row_count + ' row(s)</div>';
+            }
+            if (sql) html += '<pre>' + escapeHtml(sql) + '</pre>';
+            return html;
+        }
+
+        async function openThread(id) {
+            const res = await fetch('/api/insights/threads/' + id, { headers: authHeaders() });
+            if (!res.ok) return;
+            const { data } = await res.json();
+            currentThreadId = data.id;
+            chips.classList.add('hidden');
+            messages.innerHTML = '';
+            (data.messages || []).forEach(m => {
+                if (m.role === 'user') { addUser(m.content); return; }
+                const bubble = el('div', 'msg bot');
+                bubble.appendChild(el('div', 'avatar', 'AI'));
+                const b = el('div', 'bubble');
+                const payload = m.payload || {};
+                if (payload.error) b.classList.add('err');
+                b.innerHTML = botAnswerHtml({
+                    explanation: m.content, sql: m.sql,
+                    rows: payload.rows, row_count: payload.row_count, error: payload.error,
+                });
+                bubble.appendChild(b); messages.appendChild(bubble);
+            });
+            loadThreads(); scroll();
+        }
+
+        function newChat() {
+            currentThreadId = null;
+            messages.innerHTML = '';
+            chips.classList.remove('hidden');
+            loadThreads();
+            qInput.focus();
+        }
+
         async function ask(question) {
+            chips.classList.add('hidden');
             addUser(question);
-            const bubble = addBot();
+            const bubble = addBotTyping();
             try {
                 const res = await fetch('/api/insights/ask', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': 'Bearer ' + token,
-                    },
-                    body: JSON.stringify({ question }),
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ question, thread_id: currentThreadId }),
                 });
                 const data = await res.json();
-
                 if (res.status === 401) {
-                    bubble.classList.add('err');
-                    bubble.innerHTML = 'Session expired. Please reconnect.';
-                    setConnected(false);
-                    localStorage.removeItem('imby_token');
-                    return;
+                    bubble.classList.add('err'); bubble.innerHTML = 'Session expired. Please reconnect.';
+                    setConnected(false); localStorage.removeItem('imby_token'); return;
                 }
+                if (data.thread_id) currentThreadId = data.thread_id;
                 if (!res.ok) {
                     bubble.classList.add('err');
-                    let msg = escapeHtml(data.message || 'Request failed');
-                    if (data.reason) msg += '<div class="meta">' + escapeHtml(data.reason) + '</div>';
-                    if (data.generated_sql) msg += '<pre>' + escapeHtml(data.generated_sql) + '</pre>';
-                    bubble.innerHTML = msg;
-                    return;
+                    bubble.innerHTML = botAnswerHtml({ explanation: data.message, sql: data.sql || data.generated_sql, error: true })
+                        + (data.reason ? '<div class="meta">' + escapeHtml(data.reason) + '</div>' : '');
+                } else {
+                    bubble.innerHTML = botAnswerHtml(data);
                 }
-
-                let html = '';
-                if (data.explanation) html += '<p class="explain">' + escapeHtml(data.explanation) + '</p>';
-                html += renderTable(data.rows);
-                html += '<div class="meta">' + data.row_count + ' row(s)</div>';
-                html += '<pre>' + escapeHtml(data.sql) + '</pre>';
-                bubble.innerHTML = html;
+                loadThreads();
             } catch (e) {
-                bubble.classList.add('err');
-                bubble.textContent = e.message;
+                bubble.classList.add('err'); bubble.textContent = e.message;
             }
             scroll();
         }
 
-        function scroll() {
-            const main = document.querySelector('main');
-            main.scrollTop = main.scrollHeight;
-        }
-
-        function send() {
-            const q = qInput.value.trim();
-            if (!q) return;
-            qInput.value = '';
-            ask(q);
-        }
+        function scroll() { const m = document.querySelector('main'); m.scrollTop = m.scrollHeight; }
+        function send() { const q = qInput.value.trim(); if (!q) return; qInput.value = ''; ask(q); }
 
         loginBtn.addEventListener('click', login);
         sendBtn.addEventListener('click', send);
-        qInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-        });
-        document.getElementById('chips').addEventListener('click', e => {
-            if (e.target.classList.contains('chip')) { qInput.value = e.target.textContent; send(); }
-        });
+        document.getElementById('new-chat').addEventListener('click', newChat);
+        qInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+        chips.addEventListener('click', e => { if (e.target.classList.contains('chip')) { qInput.value = e.target.textContent; send(); } });
 
-        // Restore an existing session token if present.
-        if (token) setConnected(true); else setConnected(false);
+        if (token) { setConnected(true); loadThreads(); } else { setConnected(false); }
     </script>
     @endverbatim
 </body>
