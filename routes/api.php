@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
+use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserSearchController;
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 
 // Status route for health check
 Route::get('/status', StatusController::class);
+
+// AI insights: natural-language questions over the data warehouse (read-only).
+Route::middleware('auth:sanctum')->post('/insights/ask', [InsightsController::class, 'ask']);
 
 // Authentication routes
 Route::prefix('auth')->group(function () {
