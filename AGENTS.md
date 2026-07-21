@@ -35,8 +35,10 @@ repo. Run `agents_v2` migrations before expecting the API to work.
 
 ### AI insights feature (`laravel/ai` + local Llama via Ollama)
 - Endpoint: `POST /api/insights/ask` (Bearer auth) — body `{ "question": "..." }`. It uses the
-  `InsightsAgent` (structured output) to turn the question into a single read-only SELECT, runs it
-  through `App\Support\SqlGuard`, and executes it on the **`data_readonly`** connection.
+  `InsightsAgent` (structured output, temperature 0) to turn the question into a single read-only
+  SELECT, runs it through `App\Support\SqlGuard`, and executes it on the **`data_readonly`** connection.
+- Browser test page: `GET /insights` (`resources/views/insights.blade.php`) — a self-contained chat
+  UI that logs in via the API for a token and calls `/api/insights/ask`. Handy for manual testing.
 - Provider config lives in `config/ai.php`; defaults to the `ollama` provider + `OLLAMA_MODEL`
   (see `.env.example`). Switching to a hosted provider only needs `AI_DEFAULT_PROVIDER` + that
   provider's key — no code change.
