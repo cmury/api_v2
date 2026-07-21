@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Support\SqlGuard;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Attributes\Temperature;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
@@ -12,7 +13,10 @@ use Laravel\Ai\Promptable;
  * Turns a natural-language question about the IMBY planning warehouse into a
  * single read-only PostgreSQL SELECT. The generated SQL is validated by
  * {@see SqlGuard} and executed against the read-only connection.
+ *
+ * Temperature is pinned to 0 so SQL generation is as deterministic as possible.
  */
+#[Temperature(0)]
 class InsightsAgent implements Agent, HasStructuredOutput
 {
     use Promptable;
@@ -39,7 +43,10 @@ class InsightsAgent implements Agent, HasStructuredOutput
         Rules:
         - Output a SELECT (or WITH ... SELECT) query ONLY. Never write, update, or alter data.
         - Use ONLY the tables/columns listed above. Do not reference system catalogs.
-        - For "how many" questions use COUNT and GROUP BY.
+        - Answer questions about councils/authorities using ONLY the `authorities` table,
+          which already has `state`, `region`, and `tracking` columns. Do NOT join to
+          `applications` unless the question is specifically about development applications.
+        - For "how many ... per X" questions use COUNT(*) with GROUP BY X (do not use DISTINCT joins).
         - Always include a LIMIT (at most 200).
         - Put the query in "sql" and a one-sentence description in "explanation".
         PROMPT;
