@@ -28,12 +28,11 @@ class InsightsAgent implements Agent, HasStructuredOutput
         read-only PostgreSQL SELECT query against ONLY the tables and columns below.
 
         Tables (schema "public"):
-        - authorities(id, name, region, state, country, amalgamated, statistics_code,
-          postal_suburb, postal_code, phone, email, url, tracking [boolean],
-          tracking_system, lga_name, council_name)
+        - authorities(id, name, region, state, tracking [boolean], lga_name, council_name)
         - applications(id, authority_id, authority_no, portal_no, type, description,
-          estimated_cost [numeric], submitted [date], decision, decision_date [date],
-          created_at)
+          estimated_cost [numeric], submitted [date], decision, decision_date [date])
+        - locations(id, suburb, state, post_code, formatted_address, street)
+        - application_locations(application_id, location_id)   -- pivot: applications <-> locations
         - legislation(id, name)
         - application_classes(id, name)  development_classes(id, name)  decision_classes(id, name)
         - application_types(id, name, application_class_id)
@@ -42,11 +41,23 @@ class InsightsAgent implements Agent, HasStructuredOutput
 
         Rules:
         - Output a SELECT (or WITH ... SELECT) query ONLY. Never write, update, or alter data.
-        - Use ONLY the tables/columns listed above. Do not reference system catalogs.
-        - Answer questions about councils/authorities using ONLY the `authorities` table,
-          which already has `state`, `region`, and `tracking` columns. Do NOT join to
-          `applications` unless the question is specifically about development applications.
-        - For "how many ... per X" questions use COUNT(*) with GROUP BY X (do not use DISTINCT joins).
+        - Use ONLY the tables/columns listed above. Do not invent columns or reference system catalogs.
+        - Council/authority questions use ONLY `authorities` (has state, region, tracking).
+        - The `applications` table has NO suburb column. To filter developments by suburb, JOIN via
+          the pivot, e.g.:
+            SELECT a.description, a.estimated_cost, a.submitted, l.suburb
+            FROM applications a
+            JOIN application_locations al ON al.application_id = a.id
+            JOIN locations l ON l.id = al.location_id
+            WHERE l.suburb ILIKE 'Mawson'
+            ORDER BY a.estimated_cost DESC NULLS LAST
+            LIMIT 10
+        - "Value" / "highest value" means `applications.estimated_cost` (may be NULL for some
+          sources). When ranking by value, use `ORDER BY estimated_cost DESC NULLS LAST` and do NOT
+          add an `estimated_cost IS NOT NULL` filter (that would drop rows when value is missing).
+        - Suburb names are stored uppercase; use ILIKE for case-insensitive suburb matching, and
+          never filter locations by `state` (suburb alone is enough).
+        - For "how many ... per X" use COUNT(*) with GROUP BY X (do not use DISTINCT joins).
         - Always include a LIMIT (at most 200).
         - Put the query in "sql" and a one-sentence description in "explanation".
         PROMPT;
