@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
+use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserSearchController;
@@ -9,6 +10,15 @@ use Illuminate\Support\Facades\Route;
 
 // Status route for health check
 Route::get('/status', StatusController::class);
+
+// AI insights: natural-language questions over the data warehouse (read-only),
+// with per-user chat history stored as threads/messages.
+Route::middleware('auth:sanctum')->prefix('insights')->group(function () {
+    Route::post('/ask', [InsightsController::class, 'ask']);
+    Route::get('/threads', [InsightsController::class, 'threads']);
+    Route::get('/threads/{thread}', [InsightsController::class, 'thread']);
+    Route::delete('/threads/{thread}', [InsightsController::class, 'destroyThread']);
+});
 
 // Authentication routes
 Route::prefix('auth')->group(function () {
