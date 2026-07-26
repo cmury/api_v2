@@ -7,10 +7,14 @@
 #   cp .env.example .env   # if needed
 #   docker compose up -d --build
 #   docker compose exec app php artisan key:generate   # first time only
-#   docker compose exec ollama ollama pull llama3.2:3b
+#
+# Optional Insights (Ollama):
+#   INSIGHTS_ENABLED=true in .env
+#   docker compose --profile insights up -d
+#   docker compose --profile insights exec ollama ollama pull llama3.2:3b
 #
 # API: http://localhost:8001
-# Ollama: http://localhost:11434
+# Ollama (insights profile): http://localhost:11434
 
 services:
   app:
@@ -27,13 +31,12 @@ services:
       - "8001:8000"
     networks:
       - agents_v2_default
-    depends_on:
-      - ollama
     command: sh docker/app/entrypoint.sh
 
   ollama:
     image: ollama/ollama:latest
     container_name: api-v2-ollama
+    profiles: ["insights"]
     ports:
       - "11434:11434"
     volumes:

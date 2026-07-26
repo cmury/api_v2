@@ -66,14 +66,9 @@ class InsightsPromptContext
      */
     private static function enrichFailedAttempt(string $question, ?array $lastUser, array $lastAssistant, array $payload): string
     {
-        $reason = (string) ($payload['reason'] ?? $payload['error'] ?? $lastAssistant['content'] ?? 'unknown error');
-        if (is_string($payload['error'] ?? null) && ($payload['reason'] ?? null) === null) {
-            // payload['error'] may be bool true from fail(); prefer reason/message content
-            $reason = (string) ($payload['reason'] ?? $lastAssistant['content'] ?? 'unknown error');
-        }
-        if (isset($payload['reason']) && is_string($payload['reason'])) {
+        if (isset($payload['reason']) && is_string($payload['reason']) && $payload['reason'] !== '') {
             $reason = $payload['reason'];
-        } elseif (isset($payload['error']) && is_string($payload['error'])) {
+        } elseif (isset($payload['error']) && is_string($payload['error']) && $payload['error'] !== '') {
             $reason = $payload['error'];
         } else {
             $reason = trim((string) ($lastAssistant['content'] ?? 'unknown error'));

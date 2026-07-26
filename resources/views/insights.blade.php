@@ -103,11 +103,11 @@
                     <div class="row">
                         <div class="field">
                             <label for="email">Email</label>
-                            <input type="email" id="email" value="grace@example.com" autocomplete="username">
+                            <input type="email" id="email" value="" placeholder="you@example.com" autocomplete="username">
                         </div>
                         <div class="field">
                             <label for="password">Password</label>
-                            <input type="password" id="password" value="Password123!" autocomplete="current-password">
+                            <input type="password" id="password" value="" autocomplete="current-password">
                         </div>
                     </div>
                     <div style="margin-top:14px" class="row">

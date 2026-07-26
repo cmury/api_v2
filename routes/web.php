@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/api/status');
 
-// Simple browser page to try the AI insights chat against the API.
-Route::view('/insights', 'insights');
+// Experimental Insights chat UI (requires INSIGHTS_ENABLED=true).
+if (config('imby.insights_enabled')) {
+    Route::view('/insights', 'insights');
+}
