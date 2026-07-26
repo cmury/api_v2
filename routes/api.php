@@ -67,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'searches']);
 
     Route::get('/authorities', [AuthorityController::class, 'index']);
+    Route::get('/authorities/{authority}/statistics', [AuthorityController::class, 'statistics']);
     Route::get('/authorities/{authority}', [AuthorityController::class, 'show']);
 
     Route::get('/applications', [ApplicationController::class, 'index']);

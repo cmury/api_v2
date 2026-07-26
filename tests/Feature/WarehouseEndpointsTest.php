@@ -75,9 +75,13 @@ class WarehouseEndpointsTest extends TestCase
     {
         Sanctum::actingAs(new User(['email' => 'tester@example.com']));
 
-        // Validation passes; live DB query is not asserted here.
         $response = $this->getJson('/api/charts?metric=application_types&format=categorical&limit=5');
         $this->assertNotSame(422, $response->status());
         $this->assertNotSame(401, $response->status());
+    }
+
+    public function test_authority_statistics_require_authentication(): void
+    {
+        $this->getJson('/api/authorities/1/statistics')->assertUnauthorized();
     }
 }

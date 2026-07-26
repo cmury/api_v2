@@ -71,6 +71,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/authorities/coverage` | public |
 | GET | `/api/authorities` | Bearer |
 | GET | `/api/authorities/{id}` | Bearer |
+| GET | `/api/authorities/{id}/statistics` | Bearer — ABS/census (latest year per measure; `?all=1` or `?year=2021`) |
 | GET | `/api/applications` | Bearer |
 | GET | `/api/applications/{id}` | Bearer |
 | GET | `/api/locations/{id}` | Bearer |

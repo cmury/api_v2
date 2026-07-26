@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouse\ListAuthoritiesRequest;
 use App\Http\Resources\AuthorityResource;
+use App\Http\Resources\AuthorityStatisticResource;
 use App\Models\Authority;
+use App\Models\AuthorityStatistic;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class AuthorityController extends Controller
 {
@@ -53,6 +57,64 @@ class AuthorityController extends Controller
         $authority->loadCount('applications');
 
         return new AuthorityResource($authority);
+    }
+
+    /**
+     * ABS / census statistics for an authority (latest year per measure by default).
+     *
+     * Query: ?all=1 to return every year; ?year=2021 to pin a year.
+     */
+    public function statistics(Request $request, Authority $authority): JsonResponse
+    {
+        $code = $authority->statistics_code;
+
+        if ($code === null) {
+            return response()->json([
+                'message' => 'authority_statistics',
+                'statistics' => [],
+                'data' => [],
+            ]);
+        }
+
+        $base = AuthorityStatistic::query()->where('statistics_code', $code);
+
+        if ($request->filled('year')) {
+            $rows = (clone $base)
+                ->where('year', (int) $request->input('year'))
+                ->orderBy('measure')
+                ->get();
+        } elseif ($request->boolean('all')) {
+            $rows = (clone $base)
+                ->orderBy('measure')
+                ->orderByDesc('year')
+                ->get();
+        } else {
+            // Latest year per measure (matches old API behaviour).
+            $latestYears = AuthorityStatistic::query()
+                ->select('measure', DB::raw('MAX(year) as max_year'))
+                ->where('statistics_code', $code)
+                ->groupBy('measure');
+
+            $rows = AuthorityStatistic::query()
+                ->from('authorities_statistics as s')
+                ->joinSub($latestYears, 'latest', function ($join): void {
+                    $join->on('s.measure', '=', 'latest.measure')
+                        ->on('s.year', '=', 'latest.max_year');
+                })
+                ->where('s.statistics_code', $code)
+                ->orderBy('s.measure')
+                ->select('s.*')
+                ->get();
+        }
+
+        $payload = AuthorityStatisticResource::collection($rows);
+
+        return response()->json([
+            'message' => 'authority_statistics',
+            // Legacy key expected by imby_v2 AuthorityService.
+            'statistics' => $payload,
+            'data' => $payload,
+        ]);
     }
 
     public function coverage(): JsonResponse
