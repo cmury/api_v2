@@ -299,7 +299,8 @@
                 if (!res.ok) {
                     bubble.classList.add('err');
                     bubble.innerHTML = botAnswerHtml({ explanation: data.message, sql: data.sql || data.generated_sql, error: true })
-                        + (data.reason ? '<div class="meta">' + escapeHtml(data.reason) + '</div>' : '');
+                        + (data.reason ? '<div class="meta">' + escapeHtml(data.reason) + '</div>' : '')
+                        + (data.error ? '<div class="meta">' + escapeHtml(data.error) + '</div>' : '');
                 } else {
                     bubble.innerHTML = botAnswerHtml(data);
                 }

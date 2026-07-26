@@ -62,7 +62,7 @@ return [
             'port' => env('DATA_RO_DB_PORT', env('DATA_DB_PORT', '5432')),
             'database' => env('DATA_RO_DB_DATABASE', env('DATA_DB_DATABASE', 'imby_data_v2')),
             'username' => env('DATA_RO_DB_USERNAME', 'imby_readonly'),
-            'password' => env('DATA_RO_DB_PASSWORD', ''),
+            'password' => env('DATA_RO_DB_PASSWORD', env('DATA_DB_PASSWORD', '')),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,

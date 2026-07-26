@@ -7,8 +7,10 @@
 #   cp .env.example .env   # if needed
 #   docker compose up -d --build
 #   docker compose exec app php artisan key:generate   # first time only
+#   docker compose exec ollama ollama pull llama3.2:3b
 #
 # API: http://localhost:8001
+# Ollama: http://localhost:11434
 
 services:
   app:
@@ -16,14 +18,33 @@ services:
     container_name: api-v2-app
     working_dir: /var/www/html
     env_file: .env
+    environment:
+      AI_DEFAULT_PROVIDER: ollama
+      OLLAMA_URL: http://ollama:11434
     volumes:
       - .:/var/www/html
     ports:
       - "8001:8000"
     networks:
       - agents_v2_default
+    depends_on:
+      - ollama
     command: sh docker/app/entrypoint.sh
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: api-v2-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - agents_v2_default
+    restart: unless-stopped
 
 networks:
   agents_v2_default:
     external: true
+
+volumes:
+  ollama-data:

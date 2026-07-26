@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Insights\AskInsightRequest;
 use App\Http\Resources\ChatThreadResource;
 use App\Models\ChatThread;
+use App\Support\InsightsPromptContext;
+use App\Support\InsightsWarehouse;
 use App\Support\SqlGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,15 +78,48 @@ class InsightsController extends Controller
 
         $thread = $this->resolveThread($request, $data['thread_id'] ?? null, $question);
 
+        $history = $thread->messages()
+            ->oldest('id')
+            ->limit(12)
+            ->get(['role', 'content', 'sql', 'payload'])
+            ->map(fn ($m) => [
+                'role' => $m->role,
+                'content' => (string) $m->content,
+                'sql' => $m->sql,
+                'payload' => $m->payload,
+            ])
+            ->all();
+
         $thread->messages()->create([
             'role' => 'user',
             'content' => $question,
         ]);
 
+        if (! (new InsightsWarehouse)->hasData()) {
+            return $this->fail($thread, 'The insights warehouse has no data yet. Load the shared data tables before asking questions.', [], 503);
+        }
+
+        $prompt = InsightsPromptContext::enrich($question, $history);
+
         try {
-            $response = (new InsightsAgent)->prompt($question, timeout: 180);
+            Log::info('Insights agent invoking', [
+                'config_default' => config('ai.default'),
+                'ollama_url' => config('ai.providers.ollama.url'),
+                'follow_up' => $prompt !== $question,
+            ]);
+
+            // Always use the local Ollama service for Insights (see docker-compose ollama).
+            $response = (new InsightsAgent($history))->prompt(
+                $prompt,
+                provider: 'ollama',
+                timeout: 180,
+            );
         } catch (Throwable $e) {
-            Log::warning('Insights agent failed', ['error' => $e->getMessage()]);
+            Log::warning('Insights agent failed', [
+                'provider' => 'ollama',
+                'ollama_url' => config('ai.providers.ollama.url'),
+                'error' => $e->getMessage(),
+            ]);
 
             return $this->fail($thread, 'The insights model is unavailable.', ['error' => $e->getMessage()], 502);
         }
@@ -93,7 +128,7 @@ class InsightsController extends Controller
         $explanation = (string) ($response['explanation'] ?? '');
 
         try {
-            $sql = SqlGuard::sanitize($generatedSql);
+            $sql = SqlGuard::sanitize($generatedSql, question: $question);
         } catch (InvalidArgumentException $e) {
             Log::info('Insights query rejected', ['sql' => $generatedSql, 'reason' => $e->getMessage()]);
 

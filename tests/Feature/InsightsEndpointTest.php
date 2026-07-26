@@ -24,4 +24,9 @@ class InsightsEndpointTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('question');
     }
+
+    public function test_it_defaults_to_ollama_for_insights_when_no_provider_is_set(): void
+    {
+        $this->assertSame('ollama', config('ai.default'));
+    }
 }
