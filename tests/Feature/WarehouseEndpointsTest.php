@@ -111,4 +111,16 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/taxonomies/development-types')->assertUnauthorized();
         $this->getJson('/api/taxonomies/decision-types')->assertUnauthorized();
     }
+
+    public function test_legislation_endpoints_require_authentication(): void
+    {
+        $this->getJson('/api/legislation')->assertUnauthorized();
+        $this->getJson('/api/legislation/1')->assertUnauthorized();
+        $this->getJson('/api/legislation/1/applications')->assertUnauthorized();
+    }
+
+    public function test_application_legislation_requires_authentication(): void
+    {
+        $this->getJson('/api/applications/1/legislation')->assertUnauthorized();
+    }
 }

@@ -59,6 +59,7 @@ final class MapMarkerQuery
             authorityId: $filter->authorityId,
             search: $filter->search,
             includeAmalgamated: $filter->includeAmalgamated,
+            legislationIds: $filter->legislationIds,
         );
         $this->applicationQuery->applyToApplications($query, $appOnly, 'a');
 

@@ -75,7 +75,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput
         - locations(id, suburb, state, post_code, formatted_address, street)
           -- development site addresses only; NOT council postal addresses
         - application_locations(application_id, location_id)
-        - legislation(id, name)
+        - legislation(id, name, short_title, display_name, abbrev, jurisdiction, instrument_type, year, status, url)
+        - application_legislation(application_id, legislation_id)
 
         Taxonomies (class → type → application). Always observe these for type / development /
         decision questions — do not invent status strings that are not in decision_types:

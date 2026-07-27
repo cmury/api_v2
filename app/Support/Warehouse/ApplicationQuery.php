@@ -107,6 +107,15 @@ final class ApplicationQuery
             });
         }
 
+        if ($filter->legislationIds !== null) {
+            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+                $q->selectRaw('1')
+                    ->from('application_legislation as al')
+                    ->whereColumn('al.application_id', "{$appsTable}.id")
+                    ->whereIn('al.legislation_id', $filter->legislationIds);
+            });
+        }
+
         if ($filter->bounds !== null || $this->hasRadius($filter)) {
             $query->whereExists(function ($q) use ($filter, $appsTable): void {
                 $q->selectRaw('1')
@@ -154,6 +163,7 @@ final class ApplicationQuery
                 locationId: null,
                 search: $filter->search,
                 includeAmalgamated: $filter->includeAmalgamated,
+                legislationIds: $filter->legislationIds,
             );
 
             $this->applyToApplications($q, $appFilter, 'a');

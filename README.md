@@ -75,8 +75,12 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/authorities/{id}/statistics` | Bearer — ABS/census (latest year per measure; `?all=1` or `?year=2021`) |
 | GET | `/api/authorities/{id}/locations` | Bearer — locations linked via `authority_locations` |
 | GET | `/api/authorities/{id}/boundary` | Bearer — LGA boundary GeoJSON from `authorities.geom` |
-| GET | `/api/applications` | Bearer |
-| GET | `/api/applications/{id}` | Bearer |
+| GET | `/api/applications` | Bearer — optional `legislation_ids` / `legislation_id` |
+| GET | `/api/applications/{id}` | Bearer — includes `legislation` when loaded |
+| GET | `/api/applications/{id}/legislation` | Bearer |
+| GET | `/api/legislation` | Bearer — `jurisdiction`, `instrument_type`, `status`, search |
+| GET | `/api/legislation/{id}` | Bearer |
+| GET | `/api/legislation/{id}/applications` | Bearer — shared application filters |
 | GET | `/api/locations` | Bearer — search/filter, `state`, `suburb`, `authority_id` |
 | GET | `/api/locations/{id}` | Bearer |
 | GET | `/api/locations/{id}/applications` | Bearer |
@@ -90,7 +94,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/taxonomies/decision-classes` | Bearer |
 | GET | `/api/taxonomies/decision-types` | Bearer — optional `jurisdiction`, `class_id` |
 
-Map filter JSON (legacy + aliases): `map.bounds` `[latMax,lngMax,latMin,lngMin]`, `app` / `application_class_ids`, `type` / `development_class_ids`, `status` / `decision_class_ids`, `estvalue`, `date`.
+Map filter JSON (legacy + aliases): `map.bounds` `[latMax,lngMax,latMin,lngMin]`, `app` / `application_class_ids`, `type` / `development_class_ids`, `status` / `decision_class_ids`, `legislation_ids`, `estvalue`, `date`.
 
 Stats metrics: `applications`, `estimated_costs`, `application_types`, `development_types`, `decision_classes`.
 

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouse\ListApplicationsRequest;
 use App\Http\Resources\ApplicationResource;
+use App\Http\Resources\LegislationResource;
 use App\Models\Application;
 use App\Support\Warehouse\ApplicationFilter;
 use App\Support\Warehouse\ApplicationQuery;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ApplicationController extends Controller
 {
@@ -39,12 +41,20 @@ class ApplicationController extends Controller
         $application->load([
             'authority',
             'locations',
+            'legislations',
             'applicationTypes.applicationClass',
             'developmentTypes.developmentClass',
             'decisionTypes.decisionClass',
         ]);
 
         return new ApplicationResource($application);
+    }
+
+    public function legislations(Application $application): AnonymousResourceCollection
+    {
+        return LegislationResource::collection(
+            $application->legislations()->orderBy('name')->get(),
+        );
     }
 
     /**

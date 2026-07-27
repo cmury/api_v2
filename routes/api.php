@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
 use App\Http\Controllers\Api\InsightsController;
+use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\NotificationController;
@@ -78,7 +79,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Application endpoints
     Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::get('/applications/{application}/legislation', [ApplicationController::class, 'legislations']);
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
+
+    // Legislation endpoints
+    Route::get('/legislation', [LegislationController::class, 'index']);
+    Route::get('/legislation/{legislation}/applications', [LegislationController::class, 'applications']);
+    Route::get('/legislation/{legislation}', [LegislationController::class, 'show']);
 
     // Location endpoints
     Route::get('/locations', [LocationController::class, 'index']);

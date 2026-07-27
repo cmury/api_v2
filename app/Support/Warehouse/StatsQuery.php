@@ -225,6 +225,7 @@ final class StatsQuery
             centerLat: $filter->centerLat,
             centerLng: $filter->centerLng,
             radiusMeters: $filter->radiusMeters,
+            legislationIds: $filter->legislationIds,
         );
 
         $query = Application::query()->from('applications as a')

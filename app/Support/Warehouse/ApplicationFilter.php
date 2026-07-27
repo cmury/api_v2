@@ -18,6 +18,7 @@ final class ApplicationFilter
      * @param  list<int>|null  $applicationClassIds
      * @param  list<int>|null  $developmentClassIds
      * @param  list<int>|null  $decisionClassIds
+     * @param  list<int>|null  $legislationIds
      */
     public function __construct(
         public readonly ?array $bounds = null,
@@ -36,6 +37,7 @@ final class ApplicationFilter
         public readonly ?float $centerLat = null,
         public readonly ?float $centerLng = null,
         public readonly ?int $radiusMeters = null,
+        public readonly ?array $legislationIds = null,
     ) {}
 
     /**
@@ -80,6 +82,7 @@ final class ApplicationFilter
             centerLat: $center['lat'],
             centerLng: $center['lng'],
             radiusMeters: self::intOrNull($input['radius'] ?? $input['radius_meters'] ?? null),
+            legislationIds: self::idList($input['legislation_ids'] ?? $input['legislation_id'] ?? null),
         );
     }
 

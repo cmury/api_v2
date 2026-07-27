@@ -53,6 +53,7 @@ class ApplicationResource extends JsonResource
                     ? ['id' => $t->decisionClass->id, 'name' => $t->decisionClass->name]
                     : null,
             ])),
+            'legislation' => LegislationResource::collection($this->whenLoaded('legislations')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

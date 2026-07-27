@@ -43,6 +43,11 @@ class Application extends Model
         return $this->belongsToMany(Location::class, 'application_locations');
     }
 
+    public function legislations(): BelongsToMany
+    {
+        return $this->belongsToMany(Legislation::class, 'application_legislation');
+    }
+
     public function applicationTypes(): BelongsToMany
     {
         return $this->belongsToMany(ApplicationType::class, 'application_application_types');
