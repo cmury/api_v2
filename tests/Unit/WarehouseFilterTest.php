@@ -76,4 +76,28 @@ class WarehouseFilterTest extends TestCase
 
         $this->assertSame('$1.0m–$1.249m', $matched);
     }
+
+    public function test_chart_rejects_unknown_format(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown chart format');
+
+        (new StatsQuery)->chart('applications', new ApplicationFilter, 'month', 'heatmap');
+    }
+
+    public function test_chart_rejects_categorical_for_applications(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('format=timeseries or format=calendar');
+
+        (new StatsQuery)->chart('applications', new ApplicationFilter, 'month', 'categorical');
+    }
+
+    public function test_chart_rejects_timeseries_for_application_types(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Timeseries charts support applications and estimated_costs only.');
+
+        (new StatsQuery)->chart('application_types', new ApplicationFilter, 'month', 'timeseries');
+    }
 }

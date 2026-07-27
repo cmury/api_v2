@@ -78,15 +78,20 @@ final class StatsQuery
     }
 
     /**
+     * Chart payloads always expose Chart.js-friendly `labels` + `values`.
+     *
+     * - categorical / bands: labels[], values[] (1D)
+     * - calendar: labels[] = months, series[] = years, values[][] = matrix [year][month]
+     * - timeseries: labels[] = periods, values[] = primary metric, series[] = full points
+     *
      * @return array{
      *     metric: string,
      *     scope: string,
      *     format: string,
      *     interval: string|null,
-     *     labels: list<string|int>|null,
-     *     series: list<int>|list<array{period: string, count: int, sum?: float|null, avg?: float|null}>|null,
-     *     values: list<int|float>|null,
-     *     data: list<list<int>>|null
+     *     labels: list<string>,
+     *     values: list<int|float>|list<list<int>>,
+     *     series?: list<int>|list<array{period: string, count: int, sum?: float|null, avg?: float|null}>
      * }
      */
     public function chart(
@@ -129,7 +134,11 @@ final class StatsQuery
     }
 
     /**
-     * @return array{labels: null, series: list<array{period: string, count: int, sum?: float|null, avg?: float|null}>, values: null, data: null}
+     * @return array{
+     *     labels: list<string>,
+     *     values: list<int|float>,
+     *     series: list<array{period: string, count: int, sum?: float|null, avg?: float|null}>
+     * }
      */
     private function timeseriesChart(string $metric, ApplicationFilter $filter, string $interval): array
     {
@@ -174,18 +183,25 @@ final class StatsQuery
             return $point;
         })->all();
 
+        $labels = array_map(fn (array $point) => $point['period'], $series);
+        $values = array_map(
+            fn (array $point) => $metric === 'estimated_costs'
+                ? (float) ($point['sum'] ?? 0)
+                : (int) $point['count'],
+            $series,
+        );
+
         return [
-            'labels' => null,
+            'labels' => $labels,
+            'values' => $values,
             'series' => $series,
-            'values' => null,
-            'data' => null,
         ];
     }
 
     /**
-     * Chart.js-friendly monthly matrix: labels = months, series = years, data = [year][month].
+     * Monthly matrix: labels = months, series = years, values = [year][month] counts.
      *
-     * @return array{labels: list<string>, series: list<int>, values: null, data: list<list<int>>}
+     * @return array{labels: list<string>, series: list<int>, values: list<list<int>>}
      */
     private function calendarChart(ApplicationFilter $filter): array
     {
@@ -228,7 +244,7 @@ final class StatsQuery
             'July', 'August', 'September', 'October', 'November', 'December',
         ];
 
-        $data = [];
+        $values = [];
         foreach ($years as $year) {
             $yearData = [];
             foreach ($months as $month) {
@@ -237,19 +253,18 @@ final class StatsQuery
                 );
                 $yearData[] = $match ? (int) $match->count : 0;
             }
-            $data[] = $yearData;
+            $values[] = $yearData;
         }
 
         return [
             'labels' => $months,
             'series' => $years,
-            'values' => null,
-            'data' => $data,
+            'values' => $values,
         ];
     }
 
     /**
-     * @return array{labels: list<string>, series: null, values: list<int>, data: null}
+     * @return array{labels: list<string>, values: list<int>}
      */
     private function categoricalChart(string $metric, ApplicationFilter $filter, int $limit): array
     {
@@ -264,14 +279,12 @@ final class StatsQuery
 
         return [
             'labels' => array_map(fn ($r) => (string) $r['name'], $rows),
-            'series' => null,
             'values' => array_map(fn ($r) => (int) $r['count'], $rows),
-            'data' => null,
         ];
     }
 
     /**
-     * @return array{labels: list<string>, series: null, values: list<int>, data: null}
+     * @return array{labels: list<string>, values: list<int>}
      */
     private function costBandsChart(ApplicationFilter $filter): array
     {
@@ -300,9 +313,7 @@ final class StatsQuery
 
         return [
             'labels' => array_column(self::COST_BANDS, 'label'),
-            'series' => null,
             'values' => $counts,
-            'data' => null,
         ];
     }
 

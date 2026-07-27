@@ -77,6 +77,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/authorities/{id}/boundary` | Bearer — LGA boundary GeoJSON from `authorities.geom` |
 | GET | `/api/applications` | Bearer |
 | GET | `/api/applications/{id}` | Bearer |
+| GET | `/api/locations` | Bearer — search/filter, `state`, `suburb`, `authority_id` |
 | GET | `/api/locations/{id}` | Bearer |
 | GET | `/api/locations/{id}/applications` | Bearer |
 | GET | `/api/notifications` | Bearer — GeoJSON for notify-enabled searches |
@@ -94,6 +95,14 @@ Map filter JSON (legacy + aliases): `map.bounds` `[latMax,lngMax,latMin,lngMin]`
 Stats metrics: `applications`, `estimated_costs`, `application_types`, `development_types`, `decision_classes`.
 
 Chart formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).
+
+Every chart response includes Chart.js-friendly `labels` + `values`:
+
+| format | `labels` | `values` | `series` (extra) |
+|--------|----------|----------|------------------|
+| `categorical` / `bands` | category names | counts (1D) | — |
+| `calendar` | month names | year×month matrix | years (row keys) |
+| `timeseries` | period dates | counts, or cost **sums** for `estimated_costs` | full points (`period`, `count`, optional `sum`/`avg`) |
 
 ## Insights (experimental)
 

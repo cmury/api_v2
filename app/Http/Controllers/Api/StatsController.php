@@ -35,7 +35,7 @@ class StatsController extends Controller
     }
 
     /**
-     * Collapsed chart endpoint.
+     * Collapsed chart endpoint. Response `data` always includes `labels` + `values`.
      *
      * Examples:
      * - ?metric=applications&format=timeseries&interval=month
@@ -43,6 +43,11 @@ class StatsController extends Controller
      * - ?metric=application_types&format=categorical&limit=9
      * - ?metric=estimated_costs&format=bands
      * - ?metric=estimated_costs&format=timeseries&interval=month
+     *
+     * Shapes by format:
+     * - categorical / bands: labels[], values[]
+     * - calendar: labels[] months, series[] years, values[][] matrix
+     * - timeseries: labels[] periods, values[] primary metric, series[] full points
      */
     public function chart(StatsRequest $request): JsonResponse
     {

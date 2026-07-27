@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
 
     // Location endpoints
+    Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/locations/{location}', [LocationController::class, 'show']);
     Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 

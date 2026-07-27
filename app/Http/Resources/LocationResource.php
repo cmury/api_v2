@@ -26,6 +26,7 @@ class LocationResource extends JsonResource
             'country' => $this->country,
             'lat' => $this->when(isset($this->lat), $this->lat),
             'lng' => $this->when(isset($this->lng), $this->lng),
+            'applications_count' => $this->whenCounted('applications'),
             'applications' => ApplicationResource::collection($this->whenLoaded('applications')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

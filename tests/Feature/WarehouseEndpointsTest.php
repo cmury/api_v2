@@ -27,6 +27,11 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/applications')->assertUnauthorized();
     }
 
+    public function test_locations_require_authentication(): void
+    {
+        $this->getJson('/api/locations')->assertUnauthorized();
+    }
+
     public function test_stats_require_authentication_and_metric(): void
     {
         $this->getJson('/api/stats')->assertUnauthorized();
