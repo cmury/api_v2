@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Warehouse\ChartRequest;
 use App\Http\Requests\Warehouse\StatsRequest;
 use App\Support\Warehouse\ApplicationFilter;
 use App\Support\Warehouse\StatsQuery;
@@ -16,7 +17,17 @@ class StatsController extends Controller
     ) {}
 
     /**
-     * Collapsed count endpoint: ?metric=applications&scope=state&state=NSW
+     * Aggregate a warehouse metric for the given filters.
+     *
+     * Required: `metric` (`applications`, `estimated_costs`, `application_types`,
+     * `development_types`, `decision_classes`).
+     *
+     * Scope the count with filters such as `state`, `authority_id`, `location_id`,
+     * class/legislation ids, date range, or map bounds — not a `scope` query param.
+     * The response `data.scope` is derived from those filters (`all`, `state`,
+     * `authority`, `location`, or `map`).
+     *
+     * Example: `GET /stats?metric=applications&state=NSW`
      */
     public function show(StatsRequest $request): JsonResponse
     {
@@ -35,21 +46,26 @@ class StatsController extends Controller
     }
 
     /**
-     * Collapsed chart endpoint. Response `data` always includes `labels` + `values`.
+     * Chart a warehouse metric. Response `data` always includes Chart.js-friendly
+     * `labels` + `values` (plus `series` for calendar and timeseries).
+     *
+     * Required: `metric`. Optional: `format` (`auto`, `timeseries`, `calendar`,
+     * `categorical`, `bands`), `interval` (timeseries), `limit` (categorical),
+     * and the same filter params as `/stats` (`state`, `authority_id`, …).
      *
      * Examples:
-     * - ?metric=applications&format=timeseries&interval=month
-     * - ?metric=applications&format=calendar
-     * - ?metric=application_types&format=categorical&limit=9
-     * - ?metric=estimated_costs&format=bands
-     * - ?metric=estimated_costs&format=timeseries&interval=month
+     * - `?metric=applications&format=timeseries&interval=month`
+     * - `?metric=applications&format=calendar&authority_id=12`
+     * - `?metric=application_types&format=categorical&limit=9&state=NSW`
+     * - `?metric=estimated_costs&format=bands`
+     * - `?metric=estimated_costs&format=timeseries&interval=month`
      *
      * Shapes by format:
-     * - categorical / bands: labels[], values[]
-     * - calendar: labels[] months, series[] years, values[][] matrix
-     * - timeseries: labels[] periods, values[] primary metric, series[] full points
+     * - categorical / bands: `labels[]`, `values[]`
+     * - calendar: `labels[]` months, `series[]` years, `values[][]` matrix
+     * - timeseries: `labels[]` periods, `values[]` primary metric, `series[]` full points
      */
-    public function chart(StatsRequest $request): JsonResponse
+    public function chart(ChartRequest $request): JsonResponse
     {
         $filter = ApplicationFilter::fromArray($request->validated());
         $interval = (string) $request->input('interval', 'month');

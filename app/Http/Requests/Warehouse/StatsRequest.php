@@ -18,13 +18,20 @@ class StatsRequest extends FormRequest
      */
     public function rules(): array
     {
-        $metrics = $this->is('api/charts') || $this->is('charts')
-            ? StatsQuery::CHART_METRICS
-            : StatsQuery::METRICS;
-
         return [
-            'metric' => ['required', 'string', Rule::in($metrics)],
-            'scope' => ['nullable', 'string', Rule::in(['all', 'state', 'authority', 'location', 'map'])],
+            'metric' => ['required', 'string', Rule::in(StatsQuery::METRICS)],
+            ...$this->filterRules(),
+        ];
+    }
+
+    /**
+     * Shared warehouse filters for stats and charts.
+     *
+     * @return array<string, mixed>
+     */
+    protected function filterRules(): array
+    {
+        return [
             'state' => ['nullable', 'string', 'max:8'],
             'authority_id' => ['nullable', 'integer'],
             'location_id' => ['nullable', 'integer'],
@@ -47,9 +54,8 @@ class StatsRequest extends FormRequest
             'legislation_ids' => ['sometimes', 'array'],
             'legislation_ids.*' => ['integer'],
             'legislation_id' => ['nullable', 'integer'],
-            'interval' => ['nullable', 'string', Rule::in(['day', 'week', 'month', 'year'])],
-            'format' => ['nullable', 'string', Rule::in(['auto', 'timeseries', 'calendar', 'categorical', 'bands'])],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'estimated_cost_min' => ['nullable', 'numeric'],
+            'estimated_cost_max' => ['nullable', 'numeric'],
         ];
     }
 }
