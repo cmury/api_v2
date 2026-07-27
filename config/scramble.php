@@ -62,6 +62,7 @@ IMBY product JSON API for planning warehouse data (`imby_data_v2`).
 |--------|----------|
 | Single number / aggregate | `GET /stats` |
 | Plot (Chart.js-ready) | `GET /charts` |
+| Volume forecast | `GET /forecasts` |
 | Browse rows | `GET /applications`, `/locations`, `/authorities` |
 | Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}` |
 | Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |

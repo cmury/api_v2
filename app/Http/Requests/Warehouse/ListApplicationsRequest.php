@@ -20,6 +20,7 @@ class ListApplicationsRequest extends FormRequest
             'state' => ['nullable', 'string', 'max:8'],
             'authority_id' => ['nullable', 'integer'],
             'location_id' => ['nullable', 'integer'],
+            'suburb' => ['nullable', 'string', 'max:128'],
             'search' => ['nullable', 'string', 'max:255'],
             'filter' => ['nullable', 'string', 'max:255'],
             'submitted_from' => ['nullable', 'date'],

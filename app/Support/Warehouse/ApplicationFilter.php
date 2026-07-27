@@ -38,6 +38,7 @@ final class ApplicationFilter
         public readonly ?float $centerLng = null,
         public readonly ?int $radiusMeters = null,
         public readonly ?array $legislationIds = null,
+        public readonly ?string $suburb = null,
     ) {}
 
     /**
@@ -83,6 +84,7 @@ final class ApplicationFilter
             centerLng: $center['lng'],
             radiusMeters: self::intOrNull($input['radius'] ?? $input['radius_meters'] ?? null),
             legislationIds: self::idList($input['legislation_ids'] ?? $input['legislation_id'] ?? null),
+            suburb: self::stringOrNull($input['suburb'] ?? null),
         );
     }
 

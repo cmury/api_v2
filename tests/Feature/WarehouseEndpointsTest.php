@@ -123,4 +123,18 @@ class WarehouseEndpointsTest extends TestCase
     {
         $this->getJson('/api/applications/1/legislation')->assertUnauthorized();
     }
+
+    public function test_forecasts_require_authentication(): void
+    {
+        $this->getJson('/api/forecasts')->assertUnauthorized();
+    }
+
+    public function test_forecasts_reject_unknown_group_by(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->getJson('/api/forecasts?group_by=galaxy')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('group_by');
+    }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
+use App\Http\Controllers\Api\ForecastController;
 use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\LocationController;
@@ -92,9 +93,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/locations/{location}', [LocationController::class, 'show']);
     Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 
-    // Stats and charts endpoints
+    // Stats, charts, and forecasts
     Route::get('/stats', [StatsController::class, 'show']);
     Route::get('/charts', [StatsController::class, 'chart']);
+    Route::get('/forecasts', [ForecastController::class, 'show']);
 
     // Taxonomy endpoints
     Route::get('/taxonomies/application-classes', [TaxonomyController::class, 'applicationClasses']);

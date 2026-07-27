@@ -51,6 +51,16 @@ final class ApplicationQuery
             });
         }
 
+        if ($filter->suburb !== null) {
+            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+                $q->selectRaw('1')
+                    ->from('application_locations as al_sub')
+                    ->join('locations as l_sub', 'l_sub.id', '=', 'al_sub.location_id')
+                    ->whereColumn('al_sub.application_id', "{$appsTable}.id")
+                    ->where('l_sub.suburb', 'ilike', $filter->suburb);
+            });
+        }
+
         if ($filter->submittedFrom !== null) {
             $query->whereDate("{$appsTable}.submitted", '>=', $filter->submittedFrom->toDateString());
         }
@@ -164,6 +174,7 @@ final class ApplicationQuery
                 search: $filter->search,
                 includeAmalgamated: $filter->includeAmalgamated,
                 legislationIds: $filter->legislationIds,
+                suburb: $filter->suburb,
             );
 
             $this->applyToApplications($q, $appFilter, 'a');

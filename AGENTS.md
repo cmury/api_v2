@@ -32,7 +32,7 @@ API to work.
 ### Warehouse read APIs
 - Map: `GET /api/map/markers` (public GeoJSON), `GET /api/map/markers/csv` (Bearer).
 - Entities: `/api/authorities`, `/api/applications`, `/api/locations`, `/api/legislation` (+ nested applications).
-- Analytics: `/api/stats`, `/api/charts` (collapsed replacements for the old per-scope count/chart tree).
+- Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 
 ### OpenAPI docs

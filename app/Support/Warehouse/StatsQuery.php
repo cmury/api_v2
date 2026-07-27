@@ -226,6 +226,7 @@ final class StatsQuery
             centerLng: $filter->centerLng,
             radiusMeters: $filter->radiusMeters,
             legislationIds: $filter->legislationIds,
+            suburb: $filter->suburb,
         );
 
         $query = Application::query()->from('applications as a')

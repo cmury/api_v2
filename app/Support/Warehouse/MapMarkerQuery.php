@@ -60,6 +60,7 @@ final class MapMarkerQuery
             search: $filter->search,
             includeAmalgamated: $filter->includeAmalgamated,
             legislationIds: $filter->legislationIds,
+            suburb: $filter->suburb,
         );
         $this->applicationQuery->applyToApplications($query, $appOnly, 'a');
 

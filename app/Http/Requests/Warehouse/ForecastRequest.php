@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests\Warehouse;
 
-use App\Support\Warehouse\StatsQuery;
+use App\Support\Warehouse\ForecastQuery;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StatsRequest extends FormRequest
+class ForecastRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,32 +19,20 @@ class StatsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'metric' => ['required', 'string', Rule::in(StatsQuery::METRICS)],
-            ...$this->filterRules(),
-        ];
-    }
-
-    /**
-     * Shared warehouse filters for stats and charts.
-     *
-     * @return array<string, mixed>
-     */
-    protected function filterRules(): array
-    {
-        return [
+            'metric' => ['nullable', 'string', Rule::in(ForecastQuery::METRICS)],
+            'group_by' => ['nullable', 'string', Rule::in(ForecastQuery::GROUP_BY)],
+            'horizon' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'horizon_months' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'history_months' => ['nullable', 'integer', 'min:6', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
             'state' => ['nullable', 'string', 'max:8'],
+            'suburb' => ['nullable', 'string', 'max:128'],
             'authority_id' => ['nullable', 'integer'],
             'location_id' => ['nullable', 'integer'],
             'bounds' => ['sometimes', 'array', 'size:4'],
             'bounds.*' => ['numeric'],
             'map' => ['sometimes', 'array'],
             'map.bounds' => ['sometimes', 'array', 'size:4'],
-            'submitted_from' => ['nullable', 'date'],
-            'submitted_to' => ['nullable', 'date'],
-            'date' => ['sometimes', 'array'],
-            'date.type' => ['nullable', 'string'],
-            'date.start' => ['nullable', 'date'],
-            'date.end' => ['nullable', 'date'],
             'application_class_ids' => ['sometimes', 'array'],
             'application_class_ids.*' => ['integer'],
             'development_class_ids' => ['sometimes', 'array'],
@@ -54,9 +42,6 @@ class StatsRequest extends FormRequest
             'legislation_ids' => ['sometimes', 'array'],
             'legislation_ids.*' => ['integer'],
             'legislation_id' => ['nullable', 'integer'],
-            'suburb' => ['nullable', 'string', 'max:128'],
-            'estimated_cost_min' => ['nullable', 'numeric'],
-            'estimated_cost_max' => ['nullable', 'numeric'],
         ];
     }
 }

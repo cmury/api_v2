@@ -103,6 +103,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/notifications` | Bearer — GeoJSON for notify-enabled searches |
 | GET | `/api/stats?metric=` | Bearer |
 | GET | `/api/charts?metric=&format=` | Bearer |
+| GET | `/api/forecasts` | Bearer — application volume forecast (`state`, `suburb`, `authority_id`, `group_by`) |
 | GET | `/api/taxonomies/application-classes` | Bearer |
 | GET | `/api/taxonomies/application-types` | Bearer — optional `jurisdiction`, `class_id` |
 | GET | `/api/taxonomies/development-classes` | Bearer |
@@ -123,6 +124,20 @@ Every chart response includes Chart.js-friendly `labels` + `values`:
 | `categorical` / `bands` | category names | counts (1D) | — |
 | `calendar` | month names | year×month matrix | years (row keys) |
 | `timeseries` | period dates | counts, or cost **sums** for `estimated_costs` | full points (`period`, `count`, optional `sum`/`avg`) |
+
+### Forecasts
+
+`GET /api/forecasts` projects **application volume** with a seasonal moving average.
+
+| Query | Purpose |
+|-------|---------|
+| `state=NSW` | Single series for that state |
+| `suburb=Manly&state=NSW` | Single suburb series |
+| `authority_id=42` | Single LGA series |
+| `group_by=state\|authority\|suburb` | Top-N parallel series (`limit`, default 10) |
+| `horizon` / `history_months` | Forecast length (1–24) and lookback (6–120), defaults 3 / 24 |
+
+Response: Chart.js-friendly `labels` + `values` + `series` (`point` / `low` / `high`) for `group_by=none`; or `groups[]` when comparing entities.
 
 ## Insights (experimental)
 
