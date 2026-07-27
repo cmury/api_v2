@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ApplicationClass;
+use App\Models\ApplicationType;
 use App\Models\DecisionClass;
+use App\Models\DecisionType;
 use App\Models\DevelopmentClass;
+use App\Models\DevelopmentType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -50,6 +53,54 @@ class TaxonomyController extends Controller
         return response()->json([
             'message' => 'decision_classes',
             'data' => $query->get(['id', 'name', 'display_name', 'abbrev', 'jurisdiction', 'icon']),
+        ]);
+    }
+
+    public function applicationTypes(Request $request): JsonResponse
+    {
+        $query = ApplicationType::query()->orderBy('name');
+        if ($request->filled('jurisdiction')) {
+            $query->where('jurisdiction', strtoupper((string) $request->input('jurisdiction')));
+        }
+        if ($request->filled('class_id')) {
+            $query->where('application_class_id', (int) $request->input('class_id'));
+        }
+
+        return response()->json([
+            'message' => 'application_types',
+            'data' => $query->get(['id', 'name', 'display_name', 'application_class_id', 'jurisdiction']),
+        ]);
+    }
+
+    public function developmentTypes(Request $request): JsonResponse
+    {
+        $query = DevelopmentType::query()->orderBy('name');
+        if ($request->filled('jurisdiction')) {
+            $query->where('jurisdiction', strtoupper((string) $request->input('jurisdiction')));
+        }
+        if ($request->filled('class_id')) {
+            $query->where('development_class_id', (int) $request->input('class_id'));
+        }
+
+        return response()->json([
+            'message' => 'development_types',
+            'data' => $query->get(['id', 'name', 'display_name', 'development_class_id', 'jurisdiction']),
+        ]);
+    }
+
+    public function decisionTypes(Request $request): JsonResponse
+    {
+        $query = DecisionType::query()->orderBy('name');
+        if ($request->filled('jurisdiction')) {
+            $query->where('jurisdiction', strtoupper((string) $request->input('jurisdiction')));
+        }
+        if ($request->filled('class_id')) {
+            $query->where('decision_class_id', (int) $request->input('class_id'));
+        }
+
+        return response()->json([
+            'message' => 'decision_types',
+            'data' => $query->get(['id', 'name', 'display_name', 'decision_class_id', 'jurisdiction']),
         ]);
     }
 }

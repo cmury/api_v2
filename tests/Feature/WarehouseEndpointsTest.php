@@ -84,4 +84,26 @@ class WarehouseEndpointsTest extends TestCase
     {
         $this->getJson('/api/authorities/1/statistics')->assertUnauthorized();
     }
+
+    public function test_authorities_statistics_index_requires_authentication(): void
+    {
+        $this->getJson('/api/authorities/statistics')->assertUnauthorized();
+    }
+
+    public function test_authority_locations_require_authentication(): void
+    {
+        $this->getJson('/api/authorities/1/locations')->assertUnauthorized();
+    }
+
+    public function test_authority_boundary_requires_authentication(): void
+    {
+        $this->getJson('/api/authorities/1/boundary')->assertUnauthorized();
+    }
+
+    public function test_taxonomy_types_require_authentication(): void
+    {
+        $this->getJson('/api/taxonomies/application-types')->assertUnauthorized();
+        $this->getJson('/api/taxonomies/development-types')->assertUnauthorized();
+        $this->getJson('/api/taxonomies/decision-types')->assertUnauthorized();
+    }
 }

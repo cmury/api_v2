@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\DataDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Authority extends Model
@@ -36,6 +37,11 @@ class Authority extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(Application::class);
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'authority_locations');
     }
 
     public function amalgamatedInto(): BelongsTo

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 // Status route for health check
 Route::get('/status', StatusController::class);
 
-// Public map + coverage (same as old API)
+// Public map + coverage
 Route::get('/map/markers', [MapController::class, 'markers']);
 Route::get('/authorities/coverage', [AuthorityController::class, 'coverage']);
 
@@ -62,24 +62,37 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 
 // Warehouse read APIs (ported from old api, collapsed where duplicated)
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Mapping endpoints for map markers and CSV export
     Route::get('/map/markers/csv', [MapController::class, 'csv']);
 
     Route::get('/notifications', [NotificationController::class, 'searches']);
 
+    // Authority endpoints
     Route::get('/authorities', [AuthorityController::class, 'index']);
+    Route::get('/authorities/statistics', [AuthorityController::class, 'statisticsIndex']);
     Route::get('/authorities/{authority}/statistics', [AuthorityController::class, 'statistics']);
+    Route::get('/authorities/{authority}/locations', [AuthorityController::class, 'locations']);
+    Route::get('/authorities/{authority}/boundary', [AuthorityController::class, 'boundary']);
     Route::get('/authorities/{authority}', [AuthorityController::class, 'show']);
 
+    // Application endpoints
     Route::get('/applications', [ApplicationController::class, 'index']);
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
 
+    // Location endpoints
     Route::get('/locations/{location}', [LocationController::class, 'show']);
     Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 
+    // Stats and charts endpoints
     Route::get('/stats', [StatsController::class, 'show']);
     Route::get('/charts', [StatsController::class, 'chart']);
 
+    // Taxonomy endpoints
     Route::get('/taxonomies/application-classes', [TaxonomyController::class, 'applicationClasses']);
+    Route::get('/taxonomies/application-types', [TaxonomyController::class, 'applicationTypes']);
     Route::get('/taxonomies/development-classes', [TaxonomyController::class, 'developmentClasses']);
+    Route::get('/taxonomies/development-types', [TaxonomyController::class, 'developmentTypes']);
     Route::get('/taxonomies/decision-classes', [TaxonomyController::class, 'decisionClasses']);
+    Route::get('/taxonomies/decision-types', [TaxonomyController::class, 'decisionTypes']);
 });

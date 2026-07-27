@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouse\ListAuthoritiesRequest;
+use App\Http\Requests\Warehouse\ListAuthorityStatisticsRequest;
 use App\Http\Resources\AuthorityResource;
 use App\Http\Resources\AuthorityStatisticResource;
+use App\Http\Resources\LocationResource;
 use App\Models\Authority;
 use App\Models\AuthorityStatistic;
+use App\Models\Location;
+use App\Support\Warehouse\AuthorityBoundary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -15,6 +19,9 @@ use Illuminate\Support\Facades\DB;
 
 class AuthorityController extends Controller
 {
+    public function __construct(
+        private readonly AuthorityBoundary $authorityBoundary = new AuthorityBoundary,
+    ) {}
     public function index(ListAuthoritiesRequest $request): AnonymousResourceCollection
     {
         $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
@@ -57,6 +64,45 @@ class AuthorityController extends Controller
         $authority->loadCount('applications');
 
         return new AuthorityResource($authority);
+    }
+
+    /**
+     * Search rows in authorities_statistics (cross-authority catalog).
+     */
+    public function statisticsIndex(ListAuthorityStatisticsRequest $request): AnonymousResourceCollection
+    {
+        $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
+        $statisticsCodes = $this->statisticsCodesForRequest($request);
+
+        if ($request->boolean('latest')) {
+            $latestYears = AuthorityStatistic::query()
+                ->when($statisticsCodes !== null, fn ($q) => $q->whereIn('statistics_code', $statisticsCodes))
+                ->select('statistics_code', 'measure', DB::raw('MAX(year) as max_year'))
+                ->groupBy('statistics_code', 'measure');
+
+            $query = AuthorityStatistic::query()
+                ->from('authorities_statistics as s')
+                ->joinSub($latestYears, 'latest', function ($join): void {
+                    $join->on('s.statistics_code', '=', 'latest.statistics_code')
+                        ->on('s.measure', '=', 'latest.measure')
+                        ->on('s.year', '=', 'latest.max_year');
+                })
+                ->select('s.*')
+                ->orderBy('s.statistics_code')
+                ->orderBy('s.measure');
+
+            $this->applyStatisticRowFilters($query, $request, 's');
+        } else {
+            $query = AuthorityStatistic::query()
+                ->when($statisticsCodes !== null, fn ($q) => $q->whereIn('statistics_code', $statisticsCodes))
+                ->orderBy('statistics_code')
+                ->orderBy('measure')
+                ->orderByDesc('year');
+
+            $this->applyStatisticRowFilters($query, $request);
+        }
+
+        return AuthorityStatisticResource::collection($query->paginate($perPage));
     }
 
     /**
@@ -117,6 +163,42 @@ class AuthorityController extends Controller
         ]);
     }
 
+    public function locations(Request $request, Authority $authority): AnonymousResourceCollection
+    {
+        $perPage = min(
+            max((int) $request->input('per_page', config('imby.list_per_page', 25)), 1),
+            (int) config('imby.list_max_per_page', 100),
+        );
+
+        $locations = Location::query()
+            ->join('authority_locations as al', 'al.location_id', '=', 'locations.id')
+            ->where('al.authority_id', $authority->id)
+            ->select('locations.*')
+            ->selectRaw('ST_Y(locations.geom::geometry) AS lat')
+            ->selectRaw('ST_X(locations.geom::geometry) AS lng')
+            ->orderBy('locations.suburb')
+            ->orderBy('locations.street')
+            ->paginate($perPage);
+
+        return LocationResource::collection($locations);
+    }
+
+    public function boundary(Authority $authority): JsonResponse
+    {
+        $feature = $this->authorityBoundary->feature($authority);
+
+        if ($feature === null) {
+            return response()->json([
+                'message' => 'authority_boundary_not_found',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'authority_boundary',
+            'data' => $feature,
+        ]);
+    }
+
     public function coverage(): JsonResponse
     {
         $rows = Authority::query()
@@ -144,5 +226,54 @@ class AuthorityController extends Controller
         }
 
         return [$order, 'asc'];
+    }
+
+    /**
+     * @return array<int, int>|null
+     */
+    private function statisticsCodesForRequest(ListAuthorityStatisticsRequest $request): ?array
+    {
+        if ($request->filled('statistics_code')) {
+            return [(int) $request->input('statistics_code')];
+        }
+
+        if ($request->filled('authority_id')) {
+            $code = Authority::query()
+                ->whereKey((int) $request->input('authority_id'))
+                ->value('statistics_code');
+
+            return $code !== null ? [(int) $code] : [];
+        }
+
+        if ($request->filled('state')) {
+            return Authority::query()
+                ->where('state', strtoupper((string) $request->input('state')))
+                ->whereNotNull('statistics_code')
+                ->pluck('statistics_code')
+                ->map(fn ($code) => (int) $code)
+                ->all();
+        }
+
+        return null;
+    }
+
+    private function applyStatisticRowFilters(
+        \Illuminate\Database\Eloquent\Builder $query,
+        ListAuthorityStatisticsRequest $request,
+        ?string $alias = null,
+    ): void {
+        $column = static fn (string $name): string => $alias ? "{$alias}.{$name}" : $name;
+
+        if ($request->filled('measure')) {
+            $query->where($column('measure'), 'ilike', '%'.$request->input('measure').'%');
+        }
+
+        if ($request->filled('year')) {
+            $query->where($column('year'), (int) $request->input('year'));
+        }
+
+        if ($request->filled('source')) {
+            $query->where($column('source'), 'ilike', '%'.$request->input('source').'%');
+        }
     }
 }
