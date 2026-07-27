@@ -31,9 +31,14 @@ API to work.
 
 ### Warehouse read APIs
 - Map: `GET /api/map/markers` (public GeoJSON), `GET /api/map/markers/csv` (Bearer).
-- Entities: `/api/authorities`, `/api/applications`, `/api/locations/{id}` (+ nested applications).
+- Entities: `/api/authorities`, `/api/applications`, `/api/locations`, `/api/legislation` (+ nested applications).
 - Analytics: `/api/stats`, `/api/charts` (collapsed replacements for the old per-scope count/chart tree).
-- Taxonomies: `/api/taxonomies/*-classes`. Shared filters live in `App\Support\Warehouse\*`.
+- Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
+
+### OpenAPI docs
+- Interactive: `GET /docs/api` (Scramble + Scalar; `local`/`testing` only).
+- Spec: `GET /docs/api.json` or `php artisan scramble:export` → `docs/openapi.json`.
+- Config: `config/scramble.php`. Do **not** use old `@SWG` annotations.
 
 ### Tests & lint
 - `php artisan test` passes (uses sqlite `:memory:` per `phpunit.xml`). Warehouse and Insights

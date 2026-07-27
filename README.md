@@ -27,6 +27,22 @@ API base: [http://localhost:8001](http://localhost:8001)
 Smoke check: [http://localhost:8001/api/status](http://localhost:8001/api/status)  
 Root `/` redirects to `/api/status`.
 
+## API docs (OpenAPI)
+
+Generated automatically with [Scramble](https://scramble.dedoc.co/) from routes, FormRequests, and API Resources (OpenAPI 3.1 — no `@SWG` annotations).
+
+| URL | What |
+|-----|------|
+| [http://localhost:8001/docs/api](http://localhost:8001/docs/api) | Interactive docs (Scalar UI) |
+| [http://localhost:8001/docs/api.json](http://localhost:8001/docs/api.json) | OpenAPI JSON |
+
+Docs are available in `local` / `testing` only (`viewApiDocs` gate). Export a snapshot:
+
+```bash
+docker compose exec app php artisan scramble:export
+# → docs/openapi.json
+```
+
 ## Auth (Sanctum)
 
 | Method | Path | Auth |
