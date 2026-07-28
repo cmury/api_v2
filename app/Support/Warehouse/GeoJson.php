@@ -34,7 +34,20 @@ final class GeoJson
      */
     public static function pointFeature(object|array $row): ?array
     {
-        $data = is_array($row) ? $row : (array) $row;
+        // Eloquent models hide attributes behind (array) casts — use getAttributes().
+        if (is_array($row)) {
+            $data = $row;
+        } elseif (method_exists($row, 'getAttributes')) {
+            $data = $row->getAttributes();
+            // selectRaw aliases (lat/lng) are present as dynamic props on the model.
+            foreach (['lat', 'lng', 'formatted_address', 'submitted', 'application_count', 'id', 'location_id', 'location'] as $key) {
+                if (! array_key_exists($key, $data) && isset($row->{$key})) {
+                    $data[$key] = $row->{$key};
+                }
+            }
+        } else {
+            $data = (array) $row;
+        }
 
         $lng = isset($data['lng']) ? (float) $data['lng'] : null;
         $lat = isset($data['lat']) ? (float) $data['lat'] : null;
