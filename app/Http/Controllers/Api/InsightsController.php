@@ -7,28 +7,30 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Insights\AskInsightRequest;
 use App\Http\Resources\ChatThreadResource;
 use App\Models\ChatThread;
-use App\Support\InsightsPromptContext;
+use App\Support\Insights\AnswerComposer;
+use App\Support\Insights\InsightsDirectResolver;
+use App\Support\Insights\InsightsPromptContext;
+use App\Support\Insights\QuestionIntent;
 use App\Support\InsightsWarehouse;
-use App\Support\SqlGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
+use Laravel\Ai\Responses\Data\ToolResult;
 use Throwable;
 
 class InsightsController extends Controller
 {
     /**
-     * The read-only connection AI-generated queries are executed against.
-     */
-    private const CONNECTION = 'data_readonly';
-
-    /**
-     * Max result rows persisted in a message payload (full set is still returned).
+     * Max result rows persisted in a message payload (full set is still returned when present).
      */
     private const SNAPSHOT_ROWS = 50;
+
+    public function __construct(
+        private readonly InsightsWarehouse $warehouse = new InsightsWarehouse,
+        private readonly InsightsDirectResolver $directResolver = new InsightsDirectResolver,
+    ) {}
 
     /**
      * List the authenticated user's chat threads (most recent first).
@@ -69,7 +71,7 @@ class InsightsController extends Controller
     }
 
     /**
-     * Answer a natural-language question and persist the exchange to a thread.
+     * Answer a natural-language question via tool-calling agent and persist the exchange.
      */
     public function ask(AskInsightRequest $request): JsonResponse
     {
@@ -95,69 +97,143 @@ class InsightsController extends Controller
             'content' => $question,
         ]);
 
-        if (! (new InsightsWarehouse)->hasData()) {
+        if (! $this->warehouse->hasData()) {
             return $this->fail($thread, 'The insights warehouse has no data yet. Load the shared data tables before asking questions.', [], 503);
         }
 
+        $direct = $this->directResolver->try($question);
+        if ($direct !== null) {
+            return $this->persistAnswer($thread, $question, $direct, rawAnswer: null);
+        }
+
         $prompt = InsightsPromptContext::enrich($question, $history);
+        $provider = config('imby.insights_provider', config('ai.default'));
+        $model = config('imby.insights_model');
+        $timeout = (int) config('imby.insights_timeout', 180);
 
         try {
             Log::info('Insights agent invoking', [
-                'config_default' => config('ai.default'),
-                'ollama_url' => config('ai.providers.ollama.url'),
+                'provider' => $provider,
+                'model' => $model,
                 'follow_up' => $prompt !== $question,
             ]);
 
-            // Always use the local Ollama service for Insights (see docker-compose ollama).
             $response = (new InsightsAgent($history))->prompt(
                 $prompt,
-                provider: 'ollama',
-                timeout: 180,
+                provider: $provider,
+                model: is_string($model) && $model !== '' ? $model : null,
+                timeout: $timeout,
             );
         } catch (Throwable $e) {
             Log::warning('Insights agent failed', [
-                'provider' => 'ollama',
-                'ollama_url' => config('ai.providers.ollama.url'),
+                'provider' => $provider,
                 'error' => $e->getMessage(),
             ]);
 
             return $this->fail($thread, 'The insights model is unavailable.', ['error' => $e->getMessage()], 502);
         }
 
-        $generatedSql = (string) ($response['sql'] ?? '');
-        $explanation = (string) ($response['explanation'] ?? '');
+        $rawAnswer = trim((string) ($response['answer'] ?? ''));
+        if ($rawAnswer === '') {
+            $rawAnswer = trim((string) $response);
+        }
 
-        try {
-            $sql = SqlGuard::sanitize($generatedSql, question: $question);
-        } catch (InvalidArgumentException $e) {
-            Log::info('Insights query rejected', ['sql' => $generatedSql, 'reason' => $e->getMessage()]);
+        $explanation = trim((string) ($response['explanation'] ?? ''));
+        $confidence = (string) ($response['confidence'] ?? 'medium');
+        $toolResults = $response->toolResults ?? collect();
 
-            return $this->fail($thread, 'Could not build a safe query for that question.', [
-                'reason' => $e->getMessage(),
-                'generated_sql' => $generatedSql,
+        $composed = AnswerComposer::compose($question, $toolResults, $rawAnswer);
+        $answer = $composed['answer'];
+        $composedRows = $composed['rows'];
+        $groundedFromTools = $composed['composed_from_tools'];
+
+        if ($groundedFromTools) {
+            $confidence = $composed['confidence'];
+            if ($explanation === '' || AnswerComposer::looksLikeRawJson($explanation)) {
+                $explanation = 'Answer composed from warehouse tool results.';
+            }
+        }
+
+        if ($this->shouldSalvageWithDirect($question, $composed)) {
+            $salvaged = $this->directResolver->try($question);
+            if ($salvaged !== null) {
+                return $this->persistAnswer($thread, $question, $salvaged, rawAnswer: $rawAnswer);
+            }
+        }
+
+        if ($answer === '') {
+            return $this->fail($thread, 'The insights model returned an empty answer.', [
+                'explanation' => $explanation,
             ], 422);
         }
 
-        Log::info('Insights query', ['question' => $question, 'sql' => $sql]);
+        $tools = $this->summarizeTools($toolResults);
+        $sqlPayload = $this->extractSqlPayload($toolResults);
 
-        try {
-            $connection = DB::connection(self::CONNECTION);
-            $connection->statement("SET statement_timeout = '10s'");
-            $rows = $connection->select($sql);
-        } catch (Throwable $e) {
-            return $this->fail($thread, 'The generated query could not be executed.', [
-                'reason' => $e->getMessage(),
-                'sql' => $sql,
-            ], 422);
-        }
+        $rows = $composedRows !== [] ? $composedRows : ($sqlPayload['rows'] ?? []);
+        $sql = $sqlPayload['sql'] ?? null;
+        $rowSource = $sql !== null ? 'sql' : ($composedRows !== [] ? 'tools' : null);
+
+        return $this->persistAnswer($thread, $question, [
+            'answer' => $answer,
+            'explanation' => $explanation,
+            'confidence' => $confidence,
+            'rows' => $rows,
+            'tools' => $tools,
+            'composed_from_tools' => $groundedFromTools,
+            'warnings' => $composed['warnings'],
+            'sql' => $sql,
+            'row_source' => $rowSource,
+        ], rawAnswer: $rawAnswer);
+    }
+
+    /**
+     * @param  array{
+     *     answer: string,
+     *     explanation: string,
+     *     confidence: string,
+     *     rows: list<array<string, mixed>>,
+     *     tools: list<array{name: string, arguments?: array<string, mixed>, result_preview?: string, calls?: int}>,
+     *     composed_from_tools: bool,
+     *     warnings: list<string>,
+     *     sql: ?string,
+     *     row_source: ?string
+     * }  $payload
+     */
+    private function persistAnswer(ChatThread $thread, string $question, array $payload, ?string $rawAnswer): JsonResponse
+    {
+        $answer = $payload['answer'];
+        $explanation = $payload['explanation'];
+        $confidence = $payload['confidence'];
+        $rows = $payload['rows'];
+        $tools = $payload['tools'];
+        $sql = $payload['sql'] ?? null;
+        $rowSource = $payload['row_source'] ?? null;
+
+        Log::info('Insights answer', [
+            'question' => $question,
+            'tools' => array_column($tools, 'name'),
+            'confidence' => $confidence,
+            'sql' => $sql,
+            'composed_from_tools' => $payload['composed_from_tools'],
+            'warnings' => $payload['warnings'],
+            'raw_answer' => $rawAnswer !== null ? Str::limit($rawAnswer, 80) : null,
+            'direct' => $rawAnswer === null,
+        ]);
 
         $thread->messages()->create([
             'role' => 'assistant',
-            'content' => $explanation,
+            'content' => $answer,
             'sql' => $sql,
             'payload' => [
+                'explanation' => $explanation,
+                'confidence' => $confidence,
+                'tools' => $tools,
+                'composed_from_tools' => $payload['composed_from_tools'],
                 'row_count' => count($rows),
+                'row_source' => $rowSource,
                 'rows' => array_slice($rows, 0, self::SNAPSHOT_ROWS),
+                'warnings' => $payload['warnings'],
             ],
         ]);
 
@@ -166,11 +242,39 @@ class InsightsController extends Controller
         return response()->json([
             'thread_id' => $thread->id,
             'question' => $question,
+            'answer' => $answer,
             'explanation' => $explanation,
+            'confidence' => $confidence,
+            'tools' => $tools,
             'sql' => $sql,
             'row_count' => count($rows),
+            'row_source' => $rowSource,
             'rows' => $rows,
         ]);
+    }
+
+    /**
+     * @param  array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}  $composed
+     */
+    private function shouldSalvageWithDirect(string $question, array $composed): bool
+    {
+        $intent = QuestionIntent::fromQuestion($question);
+
+        if ($intent->wantsLargestArea) {
+            return ! str_contains(strtolower($composed['answer']), 'km');
+        }
+
+        if ($intent->wantsContact && $intent->authoritySearch !== null) {
+            foreach ($composed['rows'] as $row) {
+                if ($intent->matchesAuthorityName((string) ($row['name'] ?? ''))) {
+                    return false;
+                }
+            }
+
+            return $composed['rows'] !== [];
+        }
+
+        return false;
     }
 
     /**
@@ -217,5 +321,73 @@ class InsightsController extends Controller
     private function authorizeThread(Request $request, ChatThread $thread): void
     {
         abort_if($thread->user_id !== $request->user()->id, 404);
+    }
+
+    /**
+     * @param  Collection<int, ToolResult>|iterable<int, ToolResult>  $toolResults
+     * @return list<array{name: string, arguments: array<string, mixed>, result_preview: string, calls: int}>
+     */
+    private function summarizeTools(iterable $toolResults): array
+    {
+        $byName = [];
+
+        foreach ($toolResults as $result) {
+            if (! $result instanceof ToolResult) {
+                continue;
+            }
+
+            $name = (string) ($result->name ?? 'tool');
+            $preview = is_string($result->result ?? null)
+                ? Str::limit($result->result, 240)
+                : '';
+            $arguments = is_array($result->arguments ?? null)
+                ? $result->arguments
+                : (array) ($result->arguments ?? []);
+
+            $byName[$name] = [
+                'name' => $name,
+                'arguments' => $arguments,
+                'result_preview' => $preview,
+                'calls' => ($byName[$name]['calls'] ?? 0) + 1,
+            ];
+        }
+
+        return array_values($byName);
+    }
+
+    /**
+     * Pull SQL + rows from the last successful run_warehouse_sql tool result (if any).
+     *
+     * @param  Collection<int, ToolResult>|iterable<int, ToolResult>  $toolResults
+     * @return array{sql: ?string, rows: list<array<string, mixed>>}
+     */
+    private function extractSqlPayload(iterable $toolResults): array
+    {
+        $sql = null;
+        $rows = [];
+
+        foreach ($toolResults as $result) {
+            if (! $result instanceof ToolResult) {
+                continue;
+            }
+
+            if (($result->name ?? '') !== 'run_warehouse_sql') {
+                continue;
+            }
+
+            $decoded = json_decode((string) ($result->result ?? ''), true);
+            if (! is_array($decoded) || isset($decoded['error'])) {
+                continue;
+            }
+
+            if (is_string($decoded['sql'] ?? null)) {
+                $sql = $decoded['sql'];
+            }
+            if (is_array($decoded['rows'] ?? null)) {
+                $rows = $decoded['rows'];
+            }
+        }
+
+        return ['sql' => $sql, 'rows' => $rows];
     }
 }

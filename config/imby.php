@@ -67,14 +67,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Insights (experimental NL→SQL chat)
+    | Insights (experimental tool-calling chat)
     |--------------------------------------------------------------------------
     |
     | Off by default. Enable for local AI testing; start Ollama with:
     |   docker compose --profile insights up -d
     |
+    | The agent selects warehouse tools (authorities, applications, stats, …)
+    | grounded in OpenAPI docs, with guarded SQL only as a last resort.
+    |
     */
 
     'insights_enabled' => (bool) env('INSIGHTS_ENABLED', false),
+
+    'insights_provider' => env('INSIGHTS_PROVIDER', env('AI_DEFAULT_PROVIDER', 'ollama')),
+
+    'insights_model' => env('INSIGHTS_MODEL', env('OLLAMA_MODEL')),
+
+    'insights_timeout' => (int) env('INSIGHTS_TIMEOUT', 180),
 
 ];

@@ -49,10 +49,14 @@ API to work.
 - **Off by default.** Set `INSIGHTS_ENABLED=true` to register `/api/insights/*` and `GET /insights`.
 - Docker: `docker compose --profile insights up -d` starts Ollama; pull a model with
   `docker compose --profile insights exec ollama ollama pull llama3.2:3b`.
-- Endpoint: `POST /api/insights/ask` (Bearer) — body `{ "question": "..." }`. Uses `InsightsAgent`
-  (structured output, temperature 0) → `App\Support\SqlGuard` → `data_readonly` connection.
+- Endpoint: `POST /api/insights/ask` (Bearer) — body `{ "question": "..." }`.
+  `InsightsAgent` uses **tool calling** over warehouse APIs (search/get authorities &
+  applications, stats, forecasts, taxonomies, OpenAPI lookup) then returns structured
+  plain-English `answer`. Guarded `run_warehouse_sql` is last-resort only (`SqlGuard` +
+  `data_readonly`).
 - Browser test page: `GET /insights` when enabled.
 - Provider config: `config/ai.php`; defaults to `ollama` + `OLLAMA_MODEL` (see `.env.example`).
+- Prefer a tool-capable model; small 3B demos are unreliable for multi-step tool use.
 - Safety: `data_readonly` is SELECT-only (`imby_readonly`); `SqlGuard` enforces read-only SQL,
   row `LIMIT`, and blocks system catalogs. AI SDK conversation migrations are NOT installed.
 - Ollama gotcha on this VM class: the bundled runner may pick an AVX-512 ggml backend that

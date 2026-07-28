@@ -143,6 +143,11 @@ Response: Chart.js-friendly `labels` + `values` + `series` (`point` / `low` / `h
 
 Disabled unless `INSIGHTS_ENABLED=true`.
 
+Natural-language chat that **selects warehouse API tools** (authorities, applications,
+locations, stats, forecasts, taxonomies), grounded in `docs/openapi.json`. Guarded
+SQL (`run_warehouse_sql`) is a last resort when the REST surface cannot express the
+question. The model then answers in plain English.
+
 | Method | Path | Auth |
 |--------|------|------|
 | POST | `/api/insights/ask` | Bearer |
@@ -156,6 +161,8 @@ Disabled unless `INSIGHTS_ENABLED=true`.
 docker compose --profile insights up -d
 docker compose --profile insights exec ollama ollama pull llama3.2:3b
 ```
+
+Prefer a larger / tool-capable Ollama model when available; tiny 3B models struggle with reliable tool calling.
 
 ## Notes
 

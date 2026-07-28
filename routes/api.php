@@ -24,7 +24,7 @@ Route::get('/status', StatusController::class);
 Route::get('/map/markers', [MapController::class, 'markers']);
 Route::get('/authorities/coverage', [AuthorityController::class, 'coverage']);
 
-// Experimental Insights (NL→SQL). Gated by INSIGHTS_ENABLED.
+// Experimental Insights (tool-calling warehouse Q&A). Gated by INSIGHTS_ENABLED.
 if (config('imby.insights_enabled')) {
     Route::middleware('auth:sanctum')->prefix('insights')->group(function () {
         Route::post('/ask', [InsightsController::class, 'ask']);

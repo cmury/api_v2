@@ -238,12 +238,29 @@
             const b = el('div', 'bubble'); b.appendChild(el('div', 'typing', '<span></span><span></span><span></span>'));
             m.appendChild(b); messages.appendChild(m); scroll(); return b;
         }
-        function botAnswerHtml({ explanation, rows, row_count, sql, error }) {
+        function botAnswerHtml({ answer, explanation, rows, row_count, row_source, sql, tools, confidence, error }) {
             let html = '';
-            if (explanation) html += '<p class="explain">' + escapeHtml(explanation) + '</p>';
-            if (!error) {
+            const body = answer || explanation;
+            if (body) html += '<p class="explain">' + escapeHtml(body) + '</p>';
+            if (explanation && answer && explanation !== answer) {
+                html += '<div class="meta">' + escapeHtml(explanation) + '</div>';
+            }
+            if (confidence) html += '<div class="meta">Confidence: ' + escapeHtml(confidence) + '</div>';
+            if (tools && tools.length) {
+                const toolLabels = tools.map(t => {
+                    const args = t.arguments && Object.keys(t.arguments).length
+                        ? ' ' + JSON.stringify(t.arguments) : '';
+                    const calls = t.calls > 1 ? ' (×' + t.calls + ')' : '';
+                    return (t.name || 'tool') + args + calls;
+                });
+                html += '<div class="meta">Tools: ' + escapeHtml(toolLabels.join(', ')) + '</div>';
+            }
+            if (!error && rows && rows.length) {
                 html += renderTable(rows);
-                if (row_count !== undefined) html += '<div class="meta">' + row_count + ' row(s)</div>';
+                if (row_count !== undefined) {
+                    const label = row_source === 'sql' ? 'SQL row(s)' : 'result row(s)';
+                    html += '<div class="meta">' + row_count + ' ' + label + '</div>';
+                }
             }
             if (sql) html += '<pre>' + escapeHtml(sql) + '</pre>';
             return html;
@@ -264,8 +281,12 @@
                 const payload = m.payload || {};
                 if (payload.error) b.classList.add('err');
                 b.innerHTML = botAnswerHtml({
-                    explanation: m.content, sql: m.sql,
-                    rows: payload.rows, row_count: payload.row_count, error: payload.error,
+                    answer: m.content,
+                    explanation: payload.explanation,
+                    confidence: payload.confidence,
+                    tools: payload.tools,
+                    sql: m.sql,
+                    rows: payload.rows, row_count: payload.row_count, row_source: payload.row_source, error: payload.error,
                 });
                 bubble.appendChild(b); messages.appendChild(bubble);
             });
@@ -302,7 +323,16 @@
                         + (data.reason ? '<div class="meta">' + escapeHtml(data.reason) + '</div>' : '')
                         + (data.error ? '<div class="meta">' + escapeHtml(data.error) + '</div>' : '');
                 } else {
-                    bubble.innerHTML = botAnswerHtml(data);
+                    bubble.innerHTML = botAnswerHtml({
+                        answer: data.answer,
+                        explanation: data.explanation,
+                        confidence: data.confidence,
+                        tools: data.tools,
+                        sql: data.sql,
+                        rows: data.rows,
+                        row_count: data.row_count,
+                        row_source: data.row_source,
+                    });
                 }
                 loadThreads();
             } catch (e) {

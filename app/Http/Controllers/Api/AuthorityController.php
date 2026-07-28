@@ -12,6 +12,8 @@ use App\Models\Authority;
 use App\Models\AuthorityStatistic;
 use App\Models\Location;
 use App\Support\Warehouse\AuthorityBoundary;
+use App\Support\Warehouse\AuthoritySearch;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -21,40 +23,21 @@ class AuthorityController extends Controller
 {
     public function __construct(
         private readonly AuthorityBoundary $authorityBoundary = new AuthorityBoundary,
+        private readonly AuthoritySearch $authoritySearch = new AuthoritySearch,
     ) {}
+
     public function index(ListAuthoritiesRequest $request): AnonymousResourceCollection
     {
         $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
         $search = $request->input('search', $request->input('filter'));
-        $includeAmalgamated = $request->boolean('amalgamated');
 
-        $query = Authority::query()->withCount('applications');
+        $query = $this->authoritySearch->query(
+            is_string($search) ? $search : null,
+            $request->filled('state') ? (string) $request->input('state') : null,
+            $request->boolean('amalgamated'),
+        );
 
-        if (! $includeAmalgamated) {
-            $query->current();
-        }
-
-        if ($request->filled('state')) {
-            $query->where('state', strtoupper((string) $request->input('state')));
-        }
-
-        if (is_string($search) && $search !== '') {
-            $like = '%'.$search.'%';
-            $query->where(function ($q) use ($like): void {
-                $q->where('name', 'ilike', $like)
-                    ->orWhere('region', 'ilike', $like)
-                    ->orWhere('state', 'ilike', $like)
-                    ->orWhere('tracking_system', 'ilike', $like);
-            });
-        }
-
-        [$column, $direction] = $this->parseOrder($request->input('order', 'name'));
-        $allowed = ['name', 'state', 'region', 'created_at', 'applications_count'];
-        if (! in_array($column, $allowed, true)) {
-            $column = 'name';
-        }
-
-        $query->orderBy($column, $direction);
+        $query = $this->authoritySearch->ordered($query, (string) $request->input('order', 'name'));
 
         return AuthorityResource::collection($query->paginate($perPage));
     }
@@ -216,19 +199,6 @@ class AuthorityController extends Controller
     }
 
     /**
-     * @return array{0: string, 1: string}
-     */
-    private function parseOrder(mixed $order): array
-    {
-        $order = (string) ($order ?: 'name');
-        if (str_starts_with($order, '-')) {
-            return [substr($order, 1), 'desc'];
-        }
-
-        return [$order, 'asc'];
-    }
-
-    /**
      * @return array<int, int>|null
      */
     private function statisticsCodesForRequest(ListAuthorityStatisticsRequest $request): ?array
@@ -258,7 +228,7 @@ class AuthorityController extends Controller
     }
 
     private function applyStatisticRowFilters(
-        \Illuminate\Database\Eloquent\Builder $query,
+        Builder $query,
         ListAuthorityStatisticsRequest $request,
         ?string $alias = null,
     ): void {

@@ -10,6 +10,7 @@ use App\Models\Application;
 use App\Models\Location;
 use App\Support\Warehouse\ApplicationFilter;
 use App\Support\Warehouse\ApplicationQuery;
+use App\Support\Warehouse\LocationSearch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -17,6 +18,7 @@ class LocationController extends Controller
 {
     public function __construct(
         private readonly ApplicationQuery $applicationQuery = new ApplicationQuery,
+        private readonly LocationSearch $locationSearch = new LocationSearch,
     ) {}
 
     public function index(ListLocationsRequest $request): AnonymousResourceCollection
@@ -24,48 +26,14 @@ class LocationController extends Controller
         $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
         $search = $request->input('search', $request->input('filter'));
 
-        $query = Location::query()
-            ->withCount('applications')
-            ->select('locations.*')
-            ->selectRaw('ST_Y(locations.geom::geometry) AS lat')
-            ->selectRaw('ST_X(locations.geom::geometry) AS lng');
+        $query = $this->locationSearch->query(
+            is_string($search) ? $search : null,
+            $request->filled('state') ? (string) $request->input('state') : null,
+            $request->filled('suburb') ? (string) $request->input('suburb') : null,
+            $request->filled('authority_id') ? (int) $request->input('authority_id') : null,
+        );
 
-        if ($request->filled('state')) {
-            $query->where('locations.state', strtoupper((string) $request->input('state')));
-        }
-
-        if ($request->filled('suburb')) {
-            $query->where('locations.suburb', 'ilike', (string) $request->input('suburb'));
-        }
-
-        if ($request->filled('authority_id')) {
-            $query->join('authority_locations as al', 'al.location_id', '=', 'locations.id')
-                ->where('al.authority_id', (int) $request->input('authority_id'));
-        }
-
-        if (is_string($search) && $search !== '') {
-            $like = '%'.$search.'%';
-            $query->where(function ($q) use ($like): void {
-                $q->where('locations.formatted_address', 'ilike', $like)
-                    ->orWhere('locations.street', 'ilike', $like)
-                    ->orWhere('locations.suburb', 'ilike', $like)
-                    ->orWhere('locations.post_code', 'ilike', $like)
-                    ->orWhere('locations.state', 'ilike', $like);
-            });
-        }
-
-        [$column, $direction] = $this->parseOrder($request->input('order', 'suburb'));
-        $allowed = ['formatted_address', 'street', 'suburb', 'state', 'post_code', 'created_at', 'applications_count'];
-        if (! in_array($column, $allowed, true)) {
-            $column = 'suburb';
-        }
-
-        $orderColumn = $column === 'applications_count' ? $column : "locations.{$column}";
-        $query->orderBy($orderColumn, $direction);
-
-        if ($column !== 'street') {
-            $query->orderBy('locations.street');
-        }
+        $query = $this->locationSearch->ordered($query, (string) $request->input('order', 'suburb'));
 
         return LocationResource::collection($query->paginate($perPage));
     }
@@ -105,18 +73,5 @@ class LocationController extends Controller
         $query->orderByDesc('submitted');
 
         return ApplicationResource::collection($query->paginate($perPage));
-    }
-
-    /**
-     * @return array{0: string, 1: string}
-     */
-    private function parseOrder(mixed $order): array
-    {
-        $order = (string) ($order ?: 'suburb');
-        if (str_starts_with($order, '-')) {
-            return [substr($order, 1), 'desc'];
-        }
-
-        return [$order, 'asc'];
     }
 }
