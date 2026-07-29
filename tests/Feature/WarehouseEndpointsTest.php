@@ -137,4 +137,21 @@ class WarehouseEndpointsTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('group_by');
     }
+
+    public function test_transit_stops_require_authentication(): void
+    {
+        $this->getJson('/api/transit/stops')->assertUnauthorized();
+        $this->getJson('/api/transit/stops/1')->assertUnauthorized();
+        $this->getJson('/api/transit/stops/1/applications')->assertUnauthorized();
+        $this->getJson('/api/transit/applications-near')->assertUnauthorized();
+    }
+
+    public function test_transit_applications_near_requires_stop_identifier(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->getJson('/api/transit/applications-near?radius=1000')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['transit_stop_id', 'stop_search']);
+    }
 }

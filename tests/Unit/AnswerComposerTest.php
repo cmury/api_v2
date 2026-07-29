@@ -110,6 +110,59 @@ class AnswerComposerTest extends TestCase
         $this->assertSame('Feb', $composed['rows'][1]['label']);
     }
 
+    public function test_it_formats_applications_near_transit_stop(): void
+    {
+        $tool = new ToolResult(
+            id: '1',
+            name: 'search_applications_near_transit_stop',
+            arguments: ['stop_search' => 'Chatswood', 'radius' => 1000],
+            result: json_encode([
+                'transit_stop' => ['id' => 9, 'name' => 'Chatswood Railway Station', 'stop_type' => 'train'],
+                'radius_meters' => 1000,
+                'count' => 1,
+                'applications' => [
+                    [
+                        'authority_no' => 'DA/2024/1',
+                        'authority' => 'Willoughby City Council',
+                        'estimated_cost' => 2500000,
+                        'submitted' => '2024-06-01',
+                    ],
+                ],
+            ]),
+        );
+
+        $composed = AnswerComposer::compose(
+            'Construction Certificates for apartment buildings within 1km of Chatswood Railway Station',
+            [$tool],
+            '[]',
+        );
+
+        $this->assertStringContainsString('Chatswood Railway Station', $composed['answer']);
+        $this->assertStringContainsString('1,000m', $composed['answer']);
+        $this->assertStringContainsString('DA/2024/1', $composed['answer']);
+        $this->assertTrue($composed['composed_from_tools']);
+    }
+
+    public function test_it_formats_transit_stop_search(): void
+    {
+        $tool = new ToolResult(
+            id: '1',
+            name: 'search_transit_stops',
+            arguments: ['search' => 'Central'],
+            result: json_encode([
+                'count' => 1,
+                'transit_stops' => [
+                    ['name' => 'Central Railway Station', 'stop_type' => 'train', 'state' => 'NSW'],
+                ],
+            ]),
+        );
+
+        $composed = AnswerComposer::compose('Find Central station', [$tool], '[]');
+
+        $this->assertStringContainsString('Central Railway Station', $composed['answer']);
+        $this->assertStringContainsString('train', $composed['answer']);
+    }
+
     public function test_prompt_context_includes_previous_tool_arguments(): void
     {
         $prompt = InsightsPromptContext::enrich('add the region', [

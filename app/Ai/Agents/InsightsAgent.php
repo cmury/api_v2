@@ -10,8 +10,10 @@ use App\Ai\Tools\ListTaxonomies;
 use App\Ai\Tools\LookupApiDocs;
 use App\Ai\Tools\RunWarehouseSql;
 use App\Ai\Tools\SearchApplications;
+use App\Ai\Tools\SearchApplicationsNearTransitStop;
 use App\Ai\Tools\SearchAuthorities;
 use App\Ai\Tools\SearchLocations;
+use App\Ai\Tools\SearchTransitStops;
 use App\Support\Insights\OpenApiCatalog;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxSteps;
@@ -64,10 +66,14 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         Tool map:
         - Council contact / list / region → search_authorities / get_authority
         - Application lists / ranked values → search_applications / get_application
+        - Applications near a train/bus/airport stop → search_applications_near_transit_stop
+          (resolve station via search_transit_stops or stop_search; use radius in metres)
         - Counts, breakdowns, charts → get_stats
         - Future volume → get_forecast
-        - Class / type vocabulary (incl. BCA Class 2) → list_taxonomies
+        - Class / type vocabulary (incl. BCA Class 2, Construction Certificate) → list_taxonomies
+          then pass application_class_ids / development_class_ids / decision_class_ids
         - Site suburb / address → search_locations (not council postal address)
+        - Station / transport facility lookup → search_transit_stops
         - OpenAPI grounding → lookup_api_docs
         - Novel SQL → run_warehouse_sql
 
@@ -75,6 +81,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - States use short codes: NSW, VIC, QLD, SA, WA, TAS, NT, ACT.
         - Default to current councils (exclude amalgamated) unless asked about former councils.
         - "Value" / construction value → estimated_cost.
+        - Near-station questions use NSW transit_stops as the authoritative geometry source.
+        - Taxonomy filters are class-level for now (not specific type ids).
         - Follow-ups referring to "this/those/that" reuse prior entities from chat history.
         - If tools return errors or empty results, say so honestly and suggest a narrower question.
 
@@ -101,6 +109,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
             new SearchApplications,
             new GetApplication,
             new SearchLocations,
+            new SearchTransitStops,
+            new SearchApplicationsNearTransitStop,
             new GetStats,
             new GetForecast,
             new ListTaxonomies,

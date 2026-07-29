@@ -32,7 +32,7 @@ class RunWarehouseSql implements Tool
             .'(complex joins, PostGIS rankings, novel aggregations). Prefer search_*/get_stats/list_taxonomies first. '
             .'Allowed tables: authorities, applications, locations, application_locations, legislation, '
             .'application_legislation, application_classes/types (+ pivots), development_classes/types (+ pivots), '
-            .'decision_classes/types (+ pivots). Always include LIMIT ≤ 200. Never mutate data.';
+            .'decision_classes/types (+ pivots), transit_stops. Always include LIMIT ≤ 200. Never mutate data.';
     }
 
     public function handle(Request $request): Stringable|string

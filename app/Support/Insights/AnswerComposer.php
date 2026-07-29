@@ -145,12 +145,22 @@ final class AnswerComposer
             return self::formatApplications($byName['search_applications']['applications']);
         }
 
+        if (isset($byName['search_applications_near_transit_stop']['applications'])
+            && is_array($byName['search_applications_near_transit_stop']['applications'])
+        ) {
+            return self::formatApplicationsNearTransit($byName['search_applications_near_transit_stop']);
+        }
+
         if (isset($byName['get_application']) && is_array($byName['get_application'])) {
             return self::formatApplication($byName['get_application']);
         }
 
         if (isset($byName['search_locations']['locations']) && is_array($byName['search_locations']['locations'])) {
             return self::formatLocations($byName['search_locations']['locations'], $intent, $warnings);
+        }
+
+        if (isset($byName['search_transit_stops']['transit_stops']) && is_array($byName['search_transit_stops']['transit_stops'])) {
+            return self::formatTransitStops($byName['search_transit_stops']['transit_stops']);
         }
 
         if (isset($byName['get_stats']) && is_array($byName['get_stats'])) {
@@ -314,7 +324,67 @@ final class AnswerComposer
         }
 
         return [
-            'answer' => "Here are the applications I found:\n".implode("\n", $lines),
+            'answer' => $lines === []
+                ? 'No applications matched that search.'
+                : "Here are the applications I found:\n".implode("\n", $lines),
+            'rows' => $rows,
+            'warnings' => [],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}
+     */
+    private static function formatApplicationsNearTransit(array $payload): array
+    {
+        $applications = is_array($payload['applications'] ?? null) ? $payload['applications'] : [];
+        $stop = is_array($payload['transit_stop'] ?? null) ? $payload['transit_stop'] : [];
+        $radius = $payload['radius_meters'] ?? null;
+        $stopName = (string) ($stop['name'] ?? 'that transit stop');
+        $radiusLabel = is_numeric($radius) ? number_format((float) $radius).'m' : 'the requested radius';
+
+        $formatted = self::formatApplications($applications);
+        if ($applications === []) {
+            return [
+                'answer' => 'No applications found within '.$radiusLabel.' of '.$stopName.'.',
+                'rows' => [],
+                'warnings' => [],
+            ];
+        }
+
+        $prefix = 'Applications within '.$radiusLabel.' of '.$stopName.":\n";
+
+        return [
+            'answer' => $prefix.preg_replace('/^Here are the applications I found:\n/', '', $formatted['answer']),
+            'rows' => $formatted['rows'],
+            'warnings' => [],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $stops
+     * @return array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}
+     */
+    private static function formatTransitStops(array $stops): array
+    {
+        $lines = [];
+        $rows = [];
+        foreach (array_slice($stops, 0, 15) as $i => $row) {
+            $name = (string) ($row['name'] ?? 'Stop');
+            $extra = array_filter([
+                $row['stop_type'] ?? null,
+                $row['operational_status'] ?? null,
+                $row['state'] ?? null,
+            ]);
+            $lines[] = ($i + 1).'. '.$name.($extra !== [] ? ' — '.implode(', ', $extra) : '');
+            $rows[] = $row;
+        }
+
+        return [
+            'answer' => $lines === []
+                ? 'No transit stops matched that search.'
+                : "Here are the transit stops I found:\n".implode("\n", $lines),
             'rows' => $rows,
             'warnings' => [],
         ];

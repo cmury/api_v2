@@ -3,7 +3,7 @@
     "info": {
         "title": "IMBY API",
         "version": "0.1.0",
-        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities` |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, date / cost / bounds.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
+        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Volume forecast | `GET /forecasts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/transit/stops` |\n| Near a transit stop | `GET /transit/applications-near` (or `/transit/stops/{id}/applications`) |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/transit/stops/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, date / cost / bounds.\n\n**Transit near queries** resolve station geometry from authoritative `transit_stops` (NSW), then filter applications within `radius` metres using class-level taxonomy ids.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
     },
     "servers": [
         {
@@ -52,6 +52,17 @@
                                 "integer",
                                 "null"
                             ]
+                        }
+                    },
+                    {
+                        "name": "suburb",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 128
                         }
                     },
                     {
@@ -1526,6 +1537,851 @@
                                     },
                                     "required": [
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/forecasts": {
+            "get": {
+                "operationId": "forecast.show",
+                "description": "Method: seasonal moving average with low/high bands. Chart.js-friendly\n`labels` + `values` for a single series (`group_by=none`), or `groups[]`\nwhen projecting several states / authorities / suburbs.\n\nExamples:\n- State volume: `GET /forecasts?state=NSW&horizon=3`\n- Suburb volume: `GET /forecasts?suburb=Manly&state=NSW&horizon=6`\n- Top suburbs in an LGA: `GET /forecasts?group_by=suburb&authority_id=42&limit=5`\n- Compare states: `GET /forecasts?group_by=state&limit=8`\n\nOptional: `history_months` (default 24), `horizon` / `horizon_months` (default 3),\nshared filters (`application_class_ids`, `legislation_ids`, bounds, \u2026).",
+                "summary": "Forecast application volume from historical submissions",
+                "tags": [
+                    "Forecast"
+                ],
+                "parameters": [
+                    {
+                        "name": "metric",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "applications",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "group_by",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "none",
+                                "state",
+                                "authority",
+                                "suburb",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "horizon",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 24
+                        }
+                    },
+                    {
+                        "name": "horizon_months",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 24
+                        }
+                    },
+                    {
+                        "name": "history_months",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 6,
+                            "maximum": 120
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 8
+                        }
+                    },
+                    {
+                        "name": "suburb",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 128
+                        }
+                    },
+                    {
+                        "name": "authority_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "location_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "bounds[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    {
+                        "name": "map[bounds][]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                        }
+                    },
+                    {
+                        "name": "application_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "development_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "decision_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "legislation_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "legislation_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "forecast"
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "metric": {
+                                                            "type": "string",
+                                                            "const": "applications"
+                                                        },
+                                                        "method": {
+                                                            "type": "string",
+                                                            "const": "seasonal_moving_average"
+                                                        },
+                                                        "interval": {
+                                                            "type": "string",
+                                                            "const": "month"
+                                                        },
+                                                        "group_by": {
+                                                            "type": "string"
+                                                        },
+                                                        "based_on": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "submitted_from": {
+                                                                    "type": "string"
+                                                                },
+                                                                "submitted_to": {
+                                                                    "type": "string"
+                                                                },
+                                                                "history_months": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "submitted_from",
+                                                                "submitted_to",
+                                                                "history_months"
+                                                            ]
+                                                        },
+                                                        "horizon": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "from": {
+                                                                    "type": "string"
+                                                                },
+                                                                "to": {
+                                                                    "type": "string"
+                                                                },
+                                                                "months": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "from",
+                                                                "to",
+                                                                "months"
+                                                            ]
+                                                        },
+                                                        "labels": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "values": {
+                                                            "type": "null"
+                                                        },
+                                                        "series": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "minItems": 0,
+                                                            "maxItems": 0,
+                                                            "additionalItems": false
+                                                        },
+                                                        "groups": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "label": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "history_count": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "labels": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "string"
+                                                                        }
+                                                                    },
+                                                                    "values": {
+                                                                        "type": "array",
+                                                                        "items": {}
+                                                                    },
+                                                                    "series": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "period": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "point": {
+                                                                                    "type": [
+                                                                                        "object",
+                                                                                        "null"
+                                                                                    ]
+                                                                                },
+                                                                                "low": {
+                                                                                    "type": [
+                                                                                        "object",
+                                                                                        "null"
+                                                                                    ]
+                                                                                },
+                                                                                "high": {
+                                                                                    "type": [
+                                                                                        "object",
+                                                                                        "null"
+                                                                                    ]
+                                                                                }
+                                                                            },
+                                                                            "required": [
+                                                                                "period",
+                                                                                "point",
+                                                                                "low",
+                                                                                "high"
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "label",
+                                                                    "history_count",
+                                                                    "labels",
+                                                                    "values",
+                                                                    "series"
+                                                                ]
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "metric",
+                                                        "method",
+                                                        "interval",
+                                                        "group_by",
+                                                        "based_on",
+                                                        "horizon",
+                                                        "labels",
+                                                        "values",
+                                                        "series",
+                                                        "groups"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "metric": {
+                                                            "type": "string",
+                                                            "const": "applications"
+                                                        },
+                                                        "method": {
+                                                            "type": "string",
+                                                            "const": "seasonal_moving_average"
+                                                        },
+                                                        "interval": {
+                                                            "type": "string",
+                                                            "const": "month"
+                                                        },
+                                                        "group_by": {
+                                                            "type": "string"
+                                                        },
+                                                        "based_on": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "submitted_from": {
+                                                                    "type": "string"
+                                                                },
+                                                                "submitted_to": {
+                                                                    "type": "string"
+                                                                },
+                                                                "history_months": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "submitted_from",
+                                                                "submitted_to",
+                                                                "history_months"
+                                                            ]
+                                                        },
+                                                        "horizon": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "from": {
+                                                                    "type": "string"
+                                                                },
+                                                                "to": {
+                                                                    "type": "string"
+                                                                },
+                                                                "months": {
+                                                                    "type": [
+                                                                        "object",
+                                                                        "null"
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "from",
+                                                                "to",
+                                                                "months"
+                                                            ]
+                                                        },
+                                                        "labels": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "values": {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        "series": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "period": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "point": {
+                                                                        "type": [
+                                                                            "object",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "low": {
+                                                                        "type": [
+                                                                            "object",
+                                                                            "null"
+                                                                        ]
+                                                                    },
+                                                                    "high": {
+                                                                        "type": [
+                                                                            "object",
+                                                                            "null"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "period",
+                                                                    "point",
+                                                                    "low",
+                                                                    "high"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "groups": {
+                                                            "type": "null"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "metric",
+                                                        "method",
+                                                        "interval",
+                                                        "group_by",
+                                                        "based_on",
+                                                        "horizon",
+                                                        "labels",
+                                                        "values",
+                                                        "series",
+                                                        "groups"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/insights/ask": {
+            "post": {
+                "operationId": "insights.ask",
+                "summary": "Answer a natural-language question via tool-calling agent and persist the exchange",
+                "tags": [
+                    "Insights"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AskInsightRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "thread_id": {
+                                                    "type": "integer"
+                                                },
+                                                "question": {
+                                                    "type": "string"
+                                                },
+                                                "answer": {
+                                                    "type": "string"
+                                                },
+                                                "explanation": {
+                                                    "type": "string",
+                                                    "const": "Answer composed from warehouse tool results."
+                                                },
+                                                "confidence": {
+                                                    "type": "string"
+                                                },
+                                                "tools": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "sql": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "row_count": {
+                                                    "type": "integer"
+                                                },
+                                                "row_source": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "enum": [
+                                                        "sql",
+                                                        "tools",
+                                                        null
+                                                    ]
+                                                },
+                                                "rows": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "minItems": 0,
+                                                            "maxItems": 0,
+                                                            "additionalItems": false
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "thread_id",
+                                                "question",
+                                                "answer",
+                                                "explanation",
+                                                "confidence",
+                                                "tools",
+                                                "sql",
+                                                "row_count",
+                                                "row_source",
+                                                "rows"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "thread_id": {
+                                                    "type": "integer"
+                                                },
+                                                "question": {
+                                                    "type": "string"
+                                                },
+                                                "answer": {
+                                                    "type": "string"
+                                                },
+                                                "explanation": {
+                                                    "type": "string"
+                                                },
+                                                "confidence": {
+                                                    "type": "string"
+                                                },
+                                                "tools": {
+                                                    "type": "string"
+                                                },
+                                                "sql": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "row_count": {
+                                                    "type": "integer"
+                                                },
+                                                "row_source": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "rows": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "thread_id",
+                                                "question",
+                                                "answer",
+                                                "explanation",
+                                                "confidence",
+                                                "tools",
+                                                "sql",
+                                                "row_count",
+                                                "row_source",
+                                                "rows"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "502": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/insights/threads": {
+            "get": {
+                "operationId": "insights.threads",
+                "summary": "List the authenticated user's chat threads (most recent first)",
+                "tags": [
+                    "Insights"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ChatThreadResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ChatThreadResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/insights/threads/{thread}": {
+            "get": {
+                "operationId": "insights.thread",
+                "summary": "Show a single thread with its messages (ownership enforced)",
+                "tags": [
+                    "Insights"
+                ],
+                "parameters": [
+                    {
+                        "name": "thread",
+                        "in": "path",
+                        "required": true,
+                        "description": "The thread ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ChatThreadResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ChatThreadResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "messages"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "insights.destroyThread",
+                "summary": "Delete a thread (and, via cascade, its messages)",
+                "tags": [
+                    "Insights"
+                ],
+                "parameters": [
+                    {
+                        "name": "thread",
+                        "in": "path",
+                        "required": true,
+                        "description": "The thread ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "thread_deleted"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -3355,7 +4211,8 @@
         "/stats": {
             "get": {
                 "operationId": "stats.show",
-                "summary": "Collapsed count endpoint: ?metric=applications&scope=state&state=NSW",
+                "description": "Required: `metric` (`applications`, `estimated_costs`, `application_types`,\n`development_types`, `decision_classes`).\n\nScope the count with filters such as `state`, `authority_id`, `location_id`,\nclass/legislation ids, date range, or map bounds \u2014 not a `scope` query param.\nThe response `data.scope` is derived from those filters (`all`, `state`,\n`authority`, `location`, or `map`).\n\nExample: `GET /stats?metric=applications&state=NSW`",
+                "summary": "Aggregate a warehouse metric for the given filters",
                 "tags": [
                     "Stats"
                 ],
@@ -3372,24 +4229,6 @@
                                 "application_types",
                                 "development_types",
                                 "decision_classes"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "scope",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "all",
-                                "state",
-                                "authority",
-                                "location",
-                                "map",
-                                null
                             ]
                         }
                     },
@@ -3551,50 +4390,34 @@
                         }
                     },
                     {
-                        "name": "interval",
+                        "name": "suburb",
                         "in": "query",
                         "schema": {
                             "type": [
                                 "string",
                                 "null"
                             ],
-                            "enum": [
-                                "day",
-                                "week",
-                                "month",
-                                "year",
-                                null
+                            "maxLength": 128
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_min",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
                             ]
                         }
                     },
                     {
-                        "name": "format",
+                        "name": "estimated_cost_max",
                         "in": "query",
                         "schema": {
                             "type": [
-                                "string",
+                                "number",
                                 "null"
-                            ],
-                            "enum": [
-                                "auto",
-                                "timeseries",
-                                "calendar",
-                                "categorical",
-                                "bands",
-                                null
                             ]
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 50
                         }
                     }
                 ],
@@ -3708,8 +4531,8 @@
         "/charts": {
             "get": {
                 "operationId": "stats.chart",
-                "description": "Examples:\n- ?metric=applications&format=timeseries&interval=month\n- ?metric=applications&format=calendar\n- ?metric=application_types&format=categorical&limit=9\n- ?metric=estimated_costs&format=bands\n- ?metric=estimated_costs&format=timeseries&interval=month\n\nShapes by format:\n- categorical / bands: labels[], values[]\n- calendar: labels[] months, series[] years, values[][] matrix\n- timeseries: labels[] periods, values[] primary metric, series[] full points",
-                "summary": "Collapsed chart endpoint. Response `data` always includes `labels` + `values`",
+                "description": "Required: `metric`. Optional: `format` (`auto`, `timeseries`, `calendar`,\n`categorical`, `bands`), `interval` (timeseries), `limit` (categorical),\nand the same filter params as `/stats` (`state`, `authority_id`, \u2026).\n\nExamples:\n- `?metric=applications&format=timeseries&interval=month`\n- `?metric=applications&format=calendar&authority_id=12`\n- `?metric=application_types&format=categorical&limit=9&state=NSW`\n- `?metric=estimated_costs&format=bands`\n- `?metric=estimated_costs&format=timeseries&interval=month`\n\nShapes by format:\n- categorical / bands: `labels[]`, `values[]`\n- calendar: `labels[]` months, `series[]` years, `values[][]` matrix\n- timeseries: `labels[]` periods, `values[]` primary metric, `series[]` full points",
+                "summary": "Chart a warehouse metric. Response `data` always includes Chart.js-friendly\n`labels` + `values` (plus `series` for calendar and timeseries)",
                 "tags": [
                     "Stats"
                 ],
@@ -3730,7 +4553,7 @@
                         }
                     },
                     {
-                        "name": "scope",
+                        "name": "interval",
                         "in": "query",
                         "schema": {
                             "type": [
@@ -3738,13 +4561,42 @@
                                 "null"
                             ],
                             "enum": [
-                                "all",
-                                "state",
-                                "authority",
-                                "location",
-                                "map",
+                                "day",
+                                "week",
+                                "month",
+                                "year",
                                 null
                             ]
+                        }
+                    },
+                    {
+                        "name": "format",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "auto",
+                                "timeseries",
+                                "calendar",
+                                "categorical",
+                                "bands",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50
                         }
                     },
                     {
@@ -3905,50 +4757,34 @@
                         }
                     },
                     {
-                        "name": "interval",
+                        "name": "suburb",
                         "in": "query",
                         "schema": {
                             "type": [
                                 "string",
                                 "null"
                             ],
-                            "enum": [
-                                "day",
-                                "week",
-                                "month",
-                                "year",
-                                null
+                            "maxLength": 128
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_min",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
                             ]
                         }
                     },
                     {
-                        "name": "format",
+                        "name": "estimated_cost_max",
                         "in": "query",
                         "schema": {
                             "type": [
-                                "string",
+                                "number",
                                 "null"
-                            ],
-                            "enum": [
-                                "auto",
-                                "timeseries",
-                                "calendar",
-                                "categorical",
-                                "bands",
-                                null
                             ]
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "integer",
-                                "null"
-                            ],
-                            "minimum": 1,
-                            "maximum": 50
                         }
                     }
                 ],
@@ -4244,14 +5080,30 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationClass"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -4283,14 +5135,30 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ApplicationType"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -4322,14 +5190,30 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/DevelopmentClass"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -4361,14 +5245,30 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/DevelopmentType"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -4400,14 +5300,30 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/DecisionClass"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -4439,9 +5355,7 @@
                                         },
                                         "data": {
                                             "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/DecisionType"
-                                            }
+                                            "items": {}
                                         }
                                     },
                                     "required": [
@@ -4451,6 +5365,1236 @@
                                 }
                             }
                         }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/transit/stops": {
+            "get": {
+                "operationId": "transit.index",
+                "description": "Example: `GET /transit/stops?search=Chatswood&stop_type=train&state=NSW`",
+                "summary": "Search NSW transport facilities (transit_stops)",
+                "tags": [
+                    "Transit"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 8
+                        }
+                    },
+                    {
+                        "name": "stop_type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "operational_status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `TransitStopResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TransitStopResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/transit/applications-near": {
+            "get": {
+                "operationId": "transit.near",
+                "description": "Example:\n`GET /transit/applications-near?stop_search=Chatswood Railway Station&radius=1000&application_class_ids[]=1`",
+                "summary": "Applications near a transit stop resolved by id or name search",
+                "tags": [
+                    "Transit"
+                ],
+                "parameters": [
+                    {
+                        "name": "transit_stop_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "stop_search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "stop_type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "radius",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50000
+                        }
+                    },
+                    {
+                        "name": "radius_meters",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50000
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 8
+                        }
+                    },
+                    {
+                        "name": "authority_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "suburb",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 128
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "submitted_from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "submitted_to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "application_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "development_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "decision_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "legislation_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_min",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_max",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ApplicationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                },
+                                                "transit_stop": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "source": {
+                                                            "type": "string"
+                                                        },
+                                                        "source_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "stop_type": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "name_alt": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "operational_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "lat": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "lng": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "source_modified_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "format": "date-time"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "source",
+                                                        "source_id",
+                                                        "stop_type",
+                                                        "name",
+                                                        "name_alt",
+                                                        "operational_status",
+                                                        "state",
+                                                        "lat",
+                                                        "lng",
+                                                        "source_modified_at"
+                                                    ]
+                                                },
+                                                "radius_meters": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total",
+                                                "transit_stop",
+                                                "radius_meters"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/transit/stops/{transitStop}/applications": {
+            "get": {
+                "operationId": "transit.applications",
+                "description": "Example: `GET /transit/stops/42/applications?radius=1000&development_class_ids[]=3`",
+                "summary": "Applications within a radius of a known transit stop",
+                "tags": [
+                    "Transit"
+                ],
+                "parameters": [
+                    {
+                        "name": "transitStop",
+                        "in": "path",
+                        "required": true,
+                        "description": "The transit stop ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "transit_stop_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "stop_search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "stop_type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "radius",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50000
+                        }
+                    },
+                    {
+                        "name": "radius_meters",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 50000
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 8
+                        }
+                    },
+                    {
+                        "name": "authority_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "suburb",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 128
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "submitted_from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "submitted_to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "application_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "development_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "decision_class_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "legislation_ids[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_min",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "estimated_cost_max",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "number",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ApplicationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ApplicationResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                },
+                                                "transit_stop": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "source": {
+                                                            "type": "string"
+                                                        },
+                                                        "source_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "stop_type": {
+                                                            "type": "string"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "name_alt": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "operational_status": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "lat": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "lng": {
+                                                            "type": [
+                                                                "number",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "source_modified_at": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "format": "date-time"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "source",
+                                                        "source_id",
+                                                        "stop_type",
+                                                        "name",
+                                                        "name_alt",
+                                                        "operational_status",
+                                                        "state",
+                                                        "lat",
+                                                        "lng",
+                                                        "source_modified_at"
+                                                    ]
+                                                },
+                                                "radius_meters": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total",
+                                                "transit_stop",
+                                                "radius_meters"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/transit/stops/{transitStop}": {
+            "get": {
+                "operationId": "transit.show",
+                "summary": "Fetch one transit stop with coordinates",
+                "tags": [
+                    "Transit"
+                ],
+                "parameters": [
+                    {
+                        "name": "transitStop",
+                        "in": "path",
+                        "required": true,
+                        "description": "The transit stop ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`TransitStopResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/TransitStopResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -5060,70 +7204,6 @@
             }
         },
         "schemas": {
-            "ApplicationClass": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "display_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "abbrev": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "jurisdiction",
-                    "created_at",
-                    "updated_at"
-                ],
-                "title": "ApplicationClass"
-            },
             "ApplicationResource": {
                 "type": "object",
                 "properties": {
@@ -5382,76 +7462,24 @@
                 ],
                 "title": "ApplicationResource"
             },
-            "ApplicationType": {
+            "AskInsightRequest": {
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "integer"
+                    "question": {
+                        "type": "string",
+                        "maxLength": 500
                     },
-                    "name": {
-                        "type": "string"
-                    },
-                    "display_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "abbrev": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "application_class_id": {
+                    "thread_id": {
                         "type": [
                             "integer",
                             "null"
                         ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
                     }
                 },
                 "required": [
-                    "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "application_class_id",
-                    "jurisdiction",
-                    "created_at",
-                    "updated_at"
+                    "question"
                 ],
-                "title": "ApplicationType"
+                "title": "AskInsightRequest"
             },
             "Authority": {
                 "type": "object",
@@ -5869,50 +7897,35 @@
                 ],
                 "title": "ChangePasswordRequest"
             },
-            "DecisionClass": {
+            "ChatMessageResource": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "integer"
                     },
-                    "name": {
+                    "role": {
                         "type": "string"
                     },
-                    "display_name": {
+                    "content": {
                         "type": [
                             "string",
                             "null"
                         ]
                     },
-                    "abbrev": {
+                    "sql": {
                         "type": [
                             "string",
                             "null"
                         ]
                     },
-                    "description": {
+                    "payload": {
                         "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
+                            "array",
                             "null"
                         ],
-                        "format": "date-time"
+                        "items": {}
                     },
-                    "updated_at": {
+                    "created_at": {
                         "type": [
                             "string",
                             "null"
@@ -5922,58 +7935,25 @@
                 },
                 "required": [
                     "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "jurisdiction",
-                    "created_at",
-                    "updated_at"
+                    "role",
+                    "content",
+                    "sql",
+                    "payload",
+                    "created_at"
                 ],
-                "title": "DecisionClass"
+                "title": "ChatMessageResource"
             },
-            "DecisionType": {
+            "ChatThreadResource": {
                 "type": "object",
                 "properties": {
                     "id": {
                         "type": "integer"
                     },
-                    "name": {
-                        "type": "string"
-                    },
-                    "display_name": {
+                    "title": {
                         "type": [
                             "string",
                             "null"
                         ]
-                    },
-                    "abbrev": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "decision_class_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
                     },
                     "created_at": {
                         "type": [
@@ -5988,160 +7968,21 @@
                             "null"
                         ],
                         "format": "date-time"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ChatMessageResource"
+                        }
                     }
                 },
                 "required": [
                     "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "decision_class_id",
-                    "jurisdiction",
+                    "title",
                     "created_at",
                     "updated_at"
                 ],
-                "title": "DecisionType"
-            },
-            "DevelopmentClass": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "display_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "abbrev": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
-                    },
-                    "development_class": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "jurisdiction",
-                    "development_class",
-                    "created_at",
-                    "updated_at"
-                ],
-                "title": "DevelopmentClass"
-            },
-            "DevelopmentType": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "display_name": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "abbrev": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "description": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "icon": {
-                        "type": [
-                            "string",
-                            "null"
-                        ]
-                    },
-                    "development_class_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "jurisdiction": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "format": "date-time"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name",
-                    "display_name",
-                    "abbrev",
-                    "description",
-                    "icon",
-                    "development_class_id",
-                    "jurisdiction",
-                    "created_at",
-                    "updated_at"
-                ],
-                "title": "DevelopmentType"
+                "title": "ChatThreadResource"
             },
             "ForgotPasswordRequest": {
                 "type": "object",
@@ -6489,6 +8330,85 @@
                     "notify"
                 ],
                 "title": "StoreUserSearchRequest"
+            },
+            "TransitStopResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "source_id": {
+                        "type": "string"
+                    },
+                    "stop_type": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "name_alt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "operational_status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "state": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "lat": {
+                        "type": "number"
+                    },
+                    "lng": {
+                        "type": "number"
+                    },
+                    "source_modified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "source",
+                    "source_id",
+                    "stop_type",
+                    "name",
+                    "name_alt",
+                    "operational_status",
+                    "state",
+                    "source_modified_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "TransitStopResource"
             },
             "UpdateProfileRequest": {
                 "type": "object",
