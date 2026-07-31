@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
+use App\Http\Controllers\Api\FacilityController;
 use App\Http\Controllers\Api\ForecastController;
 use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\LegislationController;
@@ -13,7 +14,6 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TaxonomyController;
-use App\Http\Controllers\Api\TransitController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserSearchController;
 use Illuminate\Support\Facades\Route;
@@ -96,11 +96,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/locations/{location}', [LocationController::class, 'show']);
     Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 
-    // Transit stops (NSW transport facilities from transit_stops)
-    Route::get('/transit/stops', [TransitController::class, 'index']);
-    Route::get('/transit/applications-near', [TransitController::class, 'near']);
-    Route::get('/transit/stops/{transitStop}/applications', [TransitController::class, 'applications']);
-    Route::get('/transit/stops/{transitStop}', [TransitController::class, 'show']);
+    // Facilities (transport, education, …)
+    Route::get('/facilities', [FacilityController::class, 'index']);
+    Route::get('/facilities/applications-near', [FacilityController::class, 'near']);
+    Route::get('/facilities/{facility}/applications', [FacilityController::class, 'applications']);
+    Route::get('/facilities/{facility}', [FacilityController::class, 'show']);
 
     // Stats, charts, and forecasts
     Route::get('/stats', [StatsController::class, 'show']);

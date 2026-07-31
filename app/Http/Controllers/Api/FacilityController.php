@@ -3,91 +3,91 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Warehouse\ApplicationsNearTransitRequest;
-use App\Http\Requests\Warehouse\ListTransitStopsRequest;
+use App\Http\Requests\Warehouse\ApplicationsNearFacilityRequest;
+use App\Http\Requests\Warehouse\ListFacilitiesRequest;
 use App\Http\Resources\ApplicationResource;
-use App\Http\Resources\TransitStopResource;
+use App\Http\Resources\FacilityResource;
 use App\Models\Application;
-use App\Models\TransitStop;
-use App\Support\Warehouse\ApplicationsNearTransit;
-use App\Support\Warehouse\TransitStopSearch;
+use App\Models\Facility;
+use App\Support\Warehouse\ApplicationsNearFacility;
+use App\Support\Warehouse\FacilitySearch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use InvalidArgumentException;
 
-class TransitController extends Controller
+class FacilityController extends Controller
 {
     public function __construct(
-        private readonly TransitStopSearch $transitStopSearch = new TransitStopSearch,
-        private readonly ApplicationsNearTransit $applicationsNearTransit = new ApplicationsNearTransit,
+        private readonly FacilitySearch $facilitySearch = new FacilitySearch,
+        private readonly ApplicationsNearFacility $applicationsNearFacility = new ApplicationsNearFacility,
     ) {}
 
     /**
-     * Search NSW transport facilities (transit_stops).
+     * Search point facilities (transport, education, …).
      *
-     * Example: `GET /transit/stops?search=Chatswood&stop_type=train&state=NSW`
+     * Example: `GET /facilities?search=Chatswood&facility_type=train&state=NSW`
      */
-    public function index(ListTransitStopsRequest $request): AnonymousResourceCollection
+    public function index(ListFacilitiesRequest $request): AnonymousResourceCollection
     {
         $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
         $search = $request->input('search', $request->input('filter'));
 
-        $query = $this->transitStopSearch->query(
+        $query = $this->facilitySearch->query(
             is_string($search) ? $search : null,
             $request->filled('state') ? (string) $request->input('state') : null,
-            $request->filled('stop_type') ? (string) $request->input('stop_type') : null,
+            $request->filled('facility_type') ? (string) $request->input('facility_type') : null,
             $request->filled('operational_status') ? (string) $request->input('operational_status') : null,
         );
 
-        $query = $this->transitStopSearch->ordered($query, (string) $request->input('order', 'name'));
+        $query = $this->facilitySearch->ordered($query, (string) $request->input('order', 'name'));
 
-        return TransitStopResource::collection($query->paginate($perPage));
+        return FacilityResource::collection($query->paginate($perPage));
     }
 
     /**
-     * Fetch one transit stop with coordinates.
+     * Fetch one facility with coordinates.
      */
-    public function show(TransitStop $transitStop): TransitStopResource|JsonResponse
+    public function show(Facility $facility): FacilityResource|JsonResponse
     {
         try {
-            $stop = $this->applicationsNearTransit->withCoordinates($transitStop);
+            $facility = $this->applicationsNearFacility->withCoordinates($facility);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 404);
         }
 
-        return new TransitStopResource($stop);
+        return new FacilityResource($facility);
     }
 
     /**
-     * Applications within a radius of a known transit stop.
+     * Applications within a radius of a known facility.
      *
-     * Example: `GET /transit/stops/42/applications?radius=1000&development_class_ids[]=3`
+     * Example: `GET /facilities/42/applications?radius=1000&development_class_ids[]=3`
      */
-    public function applications(ApplicationsNearTransitRequest $request, TransitStop $transitStop): AnonymousResourceCollection|JsonResponse
+    public function applications(ApplicationsNearFacilityRequest $request, Facility $facility): AnonymousResourceCollection|JsonResponse
     {
-        $request->merge(['transit_stop_id' => $transitStop->id]);
+        $request->merge(['facility_id' => $facility->id]);
 
         return $this->near($request);
     }
 
     /**
-     * Applications near a transit stop resolved by id or name search.
+     * Applications near a facility resolved by id or name search.
      *
      * Example:
-     * `GET /transit/applications-near?stop_search=Chatswood Railway Station&radius=1000&application_class_ids[]=1`
+     * `GET /facilities/applications-near?facility_search=Chatswood Railway Station&radius=1000&application_class_ids[]=1`
      */
-    public function near(ApplicationsNearTransitRequest $request): AnonymousResourceCollection|JsonResponse
+    public function near(ApplicationsNearFacilityRequest $request): AnonymousResourceCollection|JsonResponse
     {
         $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
 
         try {
-            $resolved = $this->applicationsNearTransit->query(
+            $resolved = $this->applicationsNearFacility->query(
                 $request->applicationFilterInput(),
                 $request->radiusMeters(),
-                $request->filled('transit_stop_id') ? (int) $request->input('transit_stop_id') : null,
-                $request->filled('stop_search') ? (string) $request->input('stop_search') : null,
-                $request->filled('stop_type') ? (string) $request->input('stop_type') : null,
+                $request->facilityId(),
+                $request->facilitySearch(),
+                $request->filled('facility_type') ? (string) $request->input('facility_type') : null,
                 $request->filled('state') ? (string) $request->input('state') : null,
             );
         } catch (InvalidArgumentException $e) {
@@ -106,7 +106,7 @@ class TransitController extends Controller
         $collection = ApplicationResource::collection($query->paginate($perPage));
         $collection->additional([
             'meta' => [
-                'transit_stop' => $resolved['stop'],
+                'facility' => $resolved['facility'],
                 'radius_meters' => $resolved['radius_meters'],
             ],
         ]);

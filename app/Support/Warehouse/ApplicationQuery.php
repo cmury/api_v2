@@ -29,6 +29,10 @@ final class ApplicationQuery
             $query->where("{$appsTable}.authority_id", $filter->authorityId);
         }
 
+        if ($filter->source !== null) {
+            $query->where("{$appsTable}.source", $filter->source);
+        }
+
         if ($filter->state !== null) {
             $query->whereExists(function ($q) use ($filter, $appsTable): void {
                 $q->selectRaw('1')
@@ -205,6 +209,7 @@ final class ApplicationQuery
                 applicationTypeIds: $filter->applicationTypeIds,
                 developmentTypeIds: $filter->developmentTypeIds,
                 decisionTypeIds: $filter->decisionTypeIds,
+                source: $filter->source,
             );
 
             $this->applyToApplications($q, $appFilter, 'a');

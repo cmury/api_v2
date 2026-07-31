@@ -145,10 +145,10 @@ final class AnswerComposer
             return self::formatApplications($byName['search_applications']['applications']);
         }
 
-        if (isset($byName['search_applications_near_transit_stop']['applications'])
-            && is_array($byName['search_applications_near_transit_stop']['applications'])
+        if (isset($byName['search_applications_near_facility']['applications'])
+            && is_array($byName['search_applications_near_facility']['applications'])
         ) {
-            return self::formatApplicationsNearTransit($byName['search_applications_near_transit_stop']);
+            return self::formatApplicationsNearFacility($byName['search_applications_near_facility']);
         }
 
         if (isset($byName['get_application']) && is_array($byName['get_application'])) {
@@ -159,8 +159,8 @@ final class AnswerComposer
             return self::formatLocations($byName['search_locations']['locations'], $intent, $warnings);
         }
 
-        if (isset($byName['search_transit_stops']['transit_stops']) && is_array($byName['search_transit_stops']['transit_stops'])) {
-            return self::formatTransitStops($byName['search_transit_stops']['transit_stops']);
+        if (isset($byName['search_facilities']['facilities']) && is_array($byName['search_facilities']['facilities'])) {
+            return self::formatFacilities($byName['search_facilities']['facilities']);
         }
 
         if (isset($byName['get_stats']) && is_array($byName['get_stats'])) {
@@ -336,24 +336,24 @@ final class AnswerComposer
      * @param  array<string, mixed>  $payload
      * @return array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}
      */
-    private static function formatApplicationsNearTransit(array $payload): array
+    private static function formatApplicationsNearFacility(array $payload): array
     {
         $applications = is_array($payload['applications'] ?? null) ? $payload['applications'] : [];
-        $stop = is_array($payload['transit_stop'] ?? null) ? $payload['transit_stop'] : [];
+        $facility = is_array($payload['facility'] ?? null) ? $payload['facility'] : [];
         $radius = $payload['radius_meters'] ?? null;
-        $stopName = (string) ($stop['name'] ?? 'that transit stop');
+        $facilityName = (string) ($facility['name'] ?? 'that facility');
         $radiusLabel = is_numeric($radius) ? number_format((float) $radius).'m' : 'the requested radius';
 
         $formatted = self::formatApplications($applications);
         if ($applications === []) {
             return [
-                'answer' => 'No applications found within '.$radiusLabel.' of '.$stopName.'.',
+                'answer' => 'No applications found within '.$radiusLabel.' of '.$facilityName.'.',
                 'rows' => [],
                 'warnings' => [],
             ];
         }
 
-        $prefix = 'Applications within '.$radiusLabel.' of '.$stopName.":\n";
+        $prefix = 'Applications within '.$radiusLabel.' of '.$facilityName.":\n";
 
         return [
             'answer' => $prefix.preg_replace('/^Here are the applications I found:\n/', '', $formatted['answer']),
@@ -363,29 +363,35 @@ final class AnswerComposer
     }
 
     /**
-     * @param  list<array<string, mixed>>  $stops
+     * @param  list<array<string, mixed>>  $facilities
      * @return array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}
      */
-    private static function formatTransitStops(array $stops): array
+    private static function formatFacilities(array $facilities): array
     {
+        if ($facilities === []) {
+            return [
+                'answer' => 'No facilities matched that search.',
+                'rows' => [],
+                'warnings' => [],
+            ];
+        }
+
         $lines = [];
-        $rows = [];
-        foreach (array_slice($stops, 0, 15) as $i => $row) {
-            $name = (string) ($row['name'] ?? 'Stop');
-            $extra = array_filter([
-                $row['stop_type'] ?? null,
-                $row['operational_status'] ?? null,
-                $row['state'] ?? null,
-            ]);
-            $lines[] = ($i + 1).'. '.$name.($extra !== [] ? ' — '.implode(', ', $extra) : '');
-            $rows[] = $row;
+        foreach (array_values($facilities) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $n = $i + 1;
+            $name = (string) ($row['name'] ?? 'Facility');
+            $type = $row['facility_type'] ?? null;
+            $state = $row['state'] ?? null;
+            $extra = trim(implode(' · ', array_filter([(string) $type, (string) $state])));
+            $lines[] = $extra !== '' ? "{$n}. {$name} — {$extra}" : "{$n}. {$name}";
         }
 
         return [
-            'answer' => $lines === []
-                ? 'No transit stops matched that search.'
-                : "Here are the transit stops I found:\n".implode("\n", $lines),
-            'rows' => $rows,
+            'answer' => "Here are the facilities I found:\n".implode("\n", $lines),
+            'rows' => array_values(array_filter($facilities, 'is_array')),
             'warnings' => [],
         ];
     }

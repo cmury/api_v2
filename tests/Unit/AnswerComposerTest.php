@@ -110,14 +110,14 @@ class AnswerComposerTest extends TestCase
         $this->assertSame('Feb', $composed['rows'][1]['label']);
     }
 
-    public function test_it_formats_applications_near_transit_stop(): void
+    public function test_it_formats_applications_near_facility(): void
     {
         $tool = new ToolResult(
             id: '1',
-            name: 'search_applications_near_transit_stop',
-            arguments: ['stop_search' => 'Chatswood', 'radius' => 1000],
+            name: 'search_applications_near_facility',
+            arguments: ['facility_search' => 'Chatswood', 'radius' => 1000],
             result: json_encode([
-                'transit_stop' => ['id' => 9, 'name' => 'Chatswood Railway Station', 'stop_type' => 'train'],
+                'facility' => ['id' => 9, 'name' => 'Chatswood Railway Station', 'facility_type' => 'train'],
                 'radius_meters' => 1000,
                 'count' => 1,
                 'applications' => [
@@ -143,16 +143,16 @@ class AnswerComposerTest extends TestCase
         $this->assertTrue($composed['composed_from_tools']);
     }
 
-    public function test_it_formats_transit_stop_search(): void
+    public function test_it_formats_facility_search(): void
     {
         $tool = new ToolResult(
             id: '1',
-            name: 'search_transit_stops',
+            name: 'search_facilities',
             arguments: ['search' => 'Central'],
             result: json_encode([
                 'count' => 1,
-                'transit_stops' => [
-                    ['name' => 'Central Railway Station', 'stop_type' => 'train', 'state' => 'NSW'],
+                'facilities' => [
+                    ['name' => 'Central Railway Station', 'facility_type' => 'train', 'state' => 'NSW'],
                 ],
             ]),
         );

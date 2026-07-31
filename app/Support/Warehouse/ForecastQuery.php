@@ -301,6 +301,7 @@ final class ForecastQuery
             applicationTypeIds: $filter->applicationTypeIds,
             developmentTypeIds: $filter->developmentTypeIds,
             decisionTypeIds: $filter->decisionTypeIds,
+            source: $filter->source,
         );
     }
 

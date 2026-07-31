@@ -64,6 +64,7 @@ final class MapMarkerQuery
             applicationTypeIds: $filter->applicationTypeIds,
             developmentTypeIds: $filter->developmentTypeIds,
             decisionTypeIds: $filter->decisionTypeIds,
+            source: $filter->source,
         );
         $this->applicationQuery->applyToApplications($query, $appOnly, 'a');
 

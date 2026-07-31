@@ -26,6 +26,7 @@ trait WarehouseFilterSchema
             'search' => $schema->string()->description('Free-text search across descriptions / names.'),
             'submitted_from' => $schema->string()->description('ISO date lower bound for applications.submitted.'),
             'submitted_to' => $schema->string()->description('ISO date upper bound for applications.submitted.'),
+            'source' => $schema->string()->description('ETL feed key, e.g. nsw-eplanning or act-dafinder.'),
             'estimated_cost_min' => $schema->number(),
             'estimated_cost_max' => $schema->number(),
             'application_class_ids' => $schema->string()->description('Comma-separated application class ids from ListTaxonomies.'),

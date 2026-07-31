@@ -11,10 +11,10 @@ use App\Ai\Tools\ListTaxonomies;
 use App\Ai\Tools\LookupApiDocs;
 use App\Ai\Tools\RunWarehouseSql;
 use App\Ai\Tools\SearchApplications;
-use App\Ai\Tools\SearchApplicationsNearTransitStop;
+use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
+use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
-use App\Ai\Tools\SearchTransitStops;
 use App\Support\Insights\InsightsPromptContext;
 use App\Support\Insights\OpenApiCatalog;
 use App\Support\Insights\ToolJson;
@@ -45,8 +45,8 @@ class InsightsToolCallingTest extends TestCase
             'search_applications',
             'get_application',
             'search_locations',
-            'search_transit_stops',
-            'search_applications_near_transit_stop',
+            'search_facilities',
+            'search_applications_near_facility',
             'get_stats',
             'get_forecast',
             'list_taxonomies',
@@ -118,8 +118,8 @@ class InsightsToolCallingTest extends TestCase
             SearchApplications::class,
             GetApplication::class,
             SearchLocations::class,
-            SearchTransitStops::class,
-            SearchApplicationsNearTransitStop::class,
+            SearchFacilities::class,
+            SearchApplicationsNearFacility::class,
             GetStats::class,
             GetForecast::class,
             ListTaxonomies::class,

@@ -33,6 +33,7 @@ class ForecastRequest extends FormRequest
             'bounds.*' => ['numeric'],
             'map' => ['sometimes', 'array'],
             'map.bounds' => ['sometimes', 'array', 'size:4'],
+            'source' => ['nullable', 'string', 'max:32'],
             'application_class_ids' => ['sometimes', 'array'],
             'application_class_ids.*' => ['integer'],
             'development_class_ids' => ['sometimes', 'array'],

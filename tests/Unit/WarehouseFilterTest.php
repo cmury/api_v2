@@ -99,6 +99,15 @@ class WarehouseFilterTest extends TestCase
         $this->assertSame([4, 5], $filter->decisionTypeIds);
     }
 
+    public function test_application_filter_accepts_source(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'source' => 'act-dafinder',
+        ]);
+
+        $this->assertSame('act-dafinder', $filter->source);
+    }
+
     public function test_chart_rejects_unknown_format(): void
     {
         $this->expectException(InvalidArgumentException::class);

@@ -45,6 +45,7 @@ class StatsRequest extends FormRequest
             'date.type' => ['nullable', 'string'],
             'date.start' => ['nullable', 'date'],
             'date.end' => ['nullable', 'date'],
+            'source' => ['nullable', 'string', 'max:32'],
             'application_class_ids' => ['sometimes', 'array'],
             'application_class_ids.*' => ['integer'],
             'development_class_ids' => ['sometimes', 'array'],

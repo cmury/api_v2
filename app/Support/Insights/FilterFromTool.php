@@ -20,6 +20,7 @@ final class FilterFromTool
             'search' => self::string($request, 'search'),
             'submitted_from' => self::string($request, 'submitted_from'),
             'submitted_to' => self::string($request, 'submitted_to'),
+            'source' => self::string($request, 'source'),
             'estimated_cost_min' => self::float($request, 'estimated_cost_min'),
             'estimated_cost_max' => self::float($request, 'estimated_cost_max'),
             'application_class_ids' => self::idList($request, 'application_class_ids'),

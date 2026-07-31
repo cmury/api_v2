@@ -45,6 +45,7 @@ final class ApplicationFilter
         public readonly ?array $applicationTypeIds = null,
         public readonly ?array $developmentTypeIds = null,
         public readonly ?array $decisionTypeIds = null,
+        public readonly ?string $source = null,
     ) {}
 
     /**
@@ -94,6 +95,7 @@ final class ApplicationFilter
             applicationTypeIds: self::idList($input['application_type_ids'] ?? null),
             developmentTypeIds: self::idList($input['development_type_ids'] ?? null),
             decisionTypeIds: self::idList($input['decision_type_ids'] ?? null),
+            source: self::stringOrNull($input['source'] ?? null),
         );
     }
 

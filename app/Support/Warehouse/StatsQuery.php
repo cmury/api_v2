@@ -230,6 +230,7 @@ final class StatsQuery
             applicationTypeIds: $filter->applicationTypeIds,
             developmentTypeIds: $filter->developmentTypeIds,
             decisionTypeIds: $filter->decisionTypeIds,
+            source: $filter->source,
         );
 
         $query = Application::query()->from('applications as a')

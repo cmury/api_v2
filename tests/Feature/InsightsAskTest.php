@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Ai\Agents\InsightsAgent;
 use App\Models\User;
 use App\Support\InsightsWarehouse;
+use App\Support\ProductChatTables;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
@@ -36,14 +37,14 @@ class InsightsAskTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::connection('data')->create('chat_threads', function (Blueprint $table): void {
+        Schema::connection('data')->create('users_chat_threads', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id');
             $table->string('title');
             $table->timestamps();
         });
 
-        Schema::connection('data')->create('chat_messages', function (Blueprint $table): void {
+        Schema::connection('data')->create('users_chat_messages', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('thread_id');
             $table->string('role');
@@ -52,6 +53,8 @@ class InsightsAskTest extends TestCase
             $table->json('payload')->nullable();
             $table->timestamps();
         });
+
+        ProductChatTables::flush();
     }
 
     public function test_it_returns_a_faked_agent_answer(): void

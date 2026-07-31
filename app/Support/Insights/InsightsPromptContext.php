@@ -145,8 +145,8 @@ class InsightsPromptContext
         $parts[] = '';
         $parts[] = 'Hints:';
         $parts[] = '- Prefer warehouse tools (search_authorities, search_applications, get_stats, list_taxonomies,';
-        $parts[] = '  search_transit_stops, search_applications_near_transit_stop)';
-        $parts[] = '  with the correct filters (especially state when the user names one).';
+        $parts[] = '  search_facilities, search_applications_near_facility)';
+        $parts[] = '  with the correct filters (especially state / source when the user names one).';
         $parts[] = '- Use run_warehouse_sql only when REST tools cannot express the question.';
         $parts[] = '';
         $parts[] = 'Current user request: '.$question;

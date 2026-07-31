@@ -5,7 +5,7 @@
 This repo (`api_v2`) is the IMBY **JSON API** (Laravel 13, Sanctum bearer tokens), served on
 **port 8001**. It owns **no schema**: every model uses the `data` connection →
 `imby_data_v2`, whose tables (users, users_searches, users_preferences, users_log,
-personal_access_tokens, password_reset_tokens, warehouse tables, chat_*) are created and
+personal_access_tokens, password_reset_tokens, warehouse tables, users_chat_*) are created and
 owned by the sibling **`agents_v2`** repo. Run `agents_v2` migrations before expecting the
 API to work.
 
@@ -32,6 +32,7 @@ API to work.
 ### Warehouse read APIs
 - Map: `GET /api/map/markers` (public GeoJSON), `GET /api/map/markers/csv` (Bearer).
 - Entities: `/api/authorities`, `/api/applications`, `/api/locations`, `/api/legislation` (+ nested applications).
+- Facilities: `/api/facilities` (+ near/applications).
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 
@@ -51,7 +52,7 @@ API to work.
   Override with `INSIGHTS_PROVIDER` / `INSIGHTS_MODEL` (e.g. Anthropic).
 - Endpoint: `POST /api/insights/ask` (Bearer) — body `{ "question": "..." }`.
   `InsightsAgent` uses **tool calling** over warehouse APIs (search/get authorities &
-  applications, transit, stats, forecasts, taxonomies, OpenAPI lookup) then returns
+  applications, facilities, stats, forecasts, taxonomies, OpenAPI lookup) then returns
   structured plain-English `answer`. Guarded `run_warehouse_sql` is last-resort only
   (`SqlGuard` + `data_readonly`).
 - Browser test page: `GET /insights` when enabled.

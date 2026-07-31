@@ -73,7 +73,7 @@ return [
     | Off by default. Enable with INSIGHTS_ENABLED=true and configure a cloud
     | provider (OpenAI by default — same as config/ai.php).
     |
-    | The agent selects warehouse tools (authorities, applications, transit,
+    | The agent selects warehouse tools (authorities, applications, facilities,
     | stats, forecasts, taxonomies) grounded in docs/openapi.json. Guarded SQL
     | (run_warehouse_sql) is a last resort when the REST surface cannot express
     | the question.

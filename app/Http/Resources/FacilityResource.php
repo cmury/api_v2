@@ -2,12 +2,12 @@
 
 namespace App\Http\Resources;
 
-use App\Models\TransitStop;
+use App\Models\Facility;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin TransitStop */
-class TransitStopResource extends JsonResource
+/** @mixin Facility */
+class FacilityResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -18,7 +18,7 @@ class TransitStopResource extends JsonResource
             'id' => $this->id,
             'source' => $this->source,
             'source_id' => $this->source_id,
-            'stop_type' => $this->stop_type,
+            'facility_type' => $this->facility_type,
             'name' => $this->name,
             'name_alt' => $this->name_alt,
             'operational_status' => $this->operational_status,

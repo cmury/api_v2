@@ -4,7 +4,7 @@ namespace App\Http\Requests\Warehouse;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ListTransitStopsRequest extends FormRequest
+class ListFacilitiesRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -20,7 +20,7 @@ class ListTransitStopsRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'filter' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:8'],
-            'stop_type' => ['nullable', 'string', 'max:32'],
+            'facility_type' => ['nullable', 'string', 'max:32'],
             'operational_status' => ['nullable', 'string', 'max:32'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.config('imby.list_max_per_page', 100)],
             'page' => ['nullable', 'integer', 'min:1'],

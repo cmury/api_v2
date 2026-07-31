@@ -63,17 +63,17 @@ IMBY product JSON API for planning warehouse data (`imby_data_v2`).
 | Single number / aggregate | `GET /stats` |
 | Plot (Chart.js-ready) | `GET /charts` |
 | Volume forecast | `GET /forecasts` |
-| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/transit/stops` |
-| Near a transit stop | `GET /transit/applications-near` (or `/transit/stops/{id}/applications`) |
-| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/transit/stops/{id}` |
+| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities` |
+| Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |
+| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}` |
 | Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |
 | Map pins | `GET /map/markers` |
 
 **Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).
 
-**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, date / cost / bounds.
+**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.
 
-**Transit near queries** resolve station geometry from authoritative `transit_stops` (NSW), then filter applications within `radius` metres using class-level taxonomy ids.
+**Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.
 
 Schema is owned by **agents_v2** migrations — this service exposes HTTP only.
 MD,

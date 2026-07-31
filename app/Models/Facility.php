@@ -5,9 +5,12 @@ namespace App\Models;
 use App\Support\DataDatabase;
 use Illuminate\Database\Eloquent\Model;
 
-class TransitStop extends Model
+/**
+ * Point facilities (transport, education, …) in the warehouse `facilities` table.
+ */
+class Facility extends Model
 {
-    protected $table = 'transit_stops';
+    protected $table = 'facilities';
 
     protected $guarded = [];
 

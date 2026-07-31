@@ -28,23 +28,26 @@ final class DeleteUserAccount
             UserLog::query()->where('user_id', $userId)->delete();
 
             // Insights chat (messages cascade from threads when FK is present).
-            if (Schema::connection($connection)->hasTable('chat_threads')) {
-                if (Schema::connection($connection)->hasTable('chat_messages')) {
+            $threadsTable = ProductChatTables::threads();
+            $messagesTable = ProductChatTables::messages();
+
+            if (Schema::connection($connection)->hasTable($threadsTable)) {
+                if (Schema::connection($connection)->hasTable($messagesTable)) {
                     $threadIds = DB::connection($connection)
-                        ->table('chat_threads')
+                        ->table($threadsTable)
                         ->where('user_id', $userId)
                         ->pluck('id');
 
                     if ($threadIds->isNotEmpty()) {
                         DB::connection($connection)
-                            ->table('chat_messages')
+                            ->table($messagesTable)
                             ->whereIn('thread_id', $threadIds)
                             ->delete();
                     }
                 }
 
                 DB::connection($connection)
-                    ->table('chat_threads')
+                    ->table($threadsTable)
                     ->where('user_id', $userId)
                     ->delete();
             }

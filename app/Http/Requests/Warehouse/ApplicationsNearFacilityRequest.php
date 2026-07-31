@@ -4,7 +4,7 @@ namespace App\Http\Requests\Warehouse;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ApplicationsNearTransitRequest extends FormRequest
+class ApplicationsNearFacilityRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,10 +13,10 @@ class ApplicationsNearTransitRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (! $this->filled('transit_stop_id') && $this->route('transitStop') !== null) {
-            $stop = $this->route('transitStop');
+        $routeFacility = $this->route('facility');
+        if (! $this->filled('facility_id') && $routeFacility !== null) {
             $this->merge([
-                'transit_stop_id' => is_object($stop) ? (int) $stop->id : (int) $stop,
+                'facility_id' => is_object($routeFacility) ? (int) $routeFacility->id : (int) $routeFacility,
             ]);
         }
 
@@ -44,9 +44,9 @@ class ApplicationsNearTransitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'transit_stop_id' => ['nullable', 'integer', 'min:1', 'required_without:stop_search'],
-            'stop_search' => ['nullable', 'string', 'max:255', 'required_without:transit_stop_id'],
-            'stop_type' => ['nullable', 'string', 'max:32'],
+            'facility_id' => ['nullable', 'integer', 'min:1', 'required_without:facility_search'],
+            'facility_search' => ['nullable', 'string', 'max:255', 'required_without:facility_id'],
+            'facility_type' => ['nullable', 'string', 'max:32'],
             'radius' => ['nullable', 'integer', 'min:1', 'max:50000'],
             'radius_meters' => ['nullable', 'integer', 'min:1', 'max:50000'],
             'state' => ['nullable', 'string', 'max:8'],
@@ -55,6 +55,7 @@ class ApplicationsNearTransitRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'submitted_from' => ['nullable', 'date'],
             'submitted_to' => ['nullable', 'date'],
+            'source' => ['nullable', 'string', 'max:32'],
             'application_class_ids' => ['sometimes', 'array'],
             'application_class_ids.*' => ['integer'],
             'development_class_ids' => ['sometimes', 'array'],
@@ -78,7 +79,7 @@ class ApplicationsNearTransitRequest extends FormRequest
     }
 
     /**
-     * Filter payload for ApplicationFilter (excludes transit/radius controls).
+     * Filter payload for ApplicationFilter (excludes facility/radius controls).
      *
      * @return array<string, mixed>
      */
@@ -91,6 +92,7 @@ class ApplicationsNearTransitRequest extends FormRequest
             'search',
             'submitted_from',
             'submitted_to',
+            'source',
             'application_class_ids',
             'development_class_ids',
             'decision_class_ids',
@@ -106,5 +108,15 @@ class ApplicationsNearTransitRequest extends FormRequest
     public function radiusMeters(): int
     {
         return (int) ($this->input('radius') ?: $this->input('radius_meters') ?: 1000);
+    }
+
+    public function facilityId(): ?int
+    {
+        return $this->filled('facility_id') ? (int) $this->input('facility_id') : null;
+    }
+
+    public function facilitySearch(): ?string
+    {
+        return $this->filled('facility_search') ? (string) $this->input('facility_search') : null;
     }
 }

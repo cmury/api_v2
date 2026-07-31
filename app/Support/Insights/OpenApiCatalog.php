@@ -146,8 +146,8 @@ IMBY warehouse API intents:
 - Counts / aggregates → GetStats (GET /stats)
 - Charts → GetStats with chart mode (GET /charts)
 - Browse applications / authorities / locations → Search* tools
-- Near a transit stop → SearchApplicationsNearTransitStop (GET /transit/applications-near)
-- Station lookup → SearchTransitStops (GET /transit/stops)
+- Near a facility → SearchApplicationsNearFacility (GET /facilities/applications-near)
+- Facility lookup → SearchFacilities (GET /facilities)
 - Entity detail → GetAuthority / GetApplication
 - Filter vocabulary → ListTaxonomies
 - Novel joins the REST surface cannot express → RunWarehouseSql (last resort)

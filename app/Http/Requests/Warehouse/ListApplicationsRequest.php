@@ -32,6 +32,7 @@ class ListApplicationsRequest extends FormRequest
             'date.type' => ['nullable', 'string'],
             'date.start' => ['nullable', 'date'],
             'date.end' => ['nullable', 'date'],
+            'source' => ['nullable', 'string', 'max:32'],
             ...$this->taxonomyFilterRules(),
             'estimated_cost_min' => ['nullable', 'numeric'],
             'estimated_cost_max' => ['nullable', 'numeric'],
