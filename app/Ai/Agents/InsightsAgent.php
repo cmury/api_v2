@@ -34,7 +34,7 @@ use Laravel\Ai\Promptable;
  * Warehouse Q&A agent: choose API-backed tools, then answer in plain English.
  * Falls back to guarded SQL only when the REST tool surface cannot express the question.
  */
-#[Provider(Lab::Ollama)]
+#[Provider(Lab::OpenAI)]
 #[Temperature(0)]
 #[MaxSteps(4)]
 class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTools

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('AI_DEFAULT_PROVIDER', 'ollama'),
+    'default' => env('AI_DEFAULT_PROVIDER', 'openai'),
     'default_for_images' => 'gemini',
     'default_for_audio' => 'openai',
     'default_for_transcription' => 'openai',
@@ -116,12 +116,7 @@ return [
         'ollama' => [
             'driver' => 'ollama',
             'key' => env('OLLAMA_API_KEY', ''),
-            'url' => env('OLLAMA_URL', 'http://ollama:11434'),
-            'models' => [
-                'text' => [
-                    'default' => env('OLLAMA_MODEL', 'llama3.2:3b'),
-                ],
-            ],
+            'url' => env('OLLAMA_URL', 'http://localhost:11434'),
         ],
 
         'openai' => [

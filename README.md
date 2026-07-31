@@ -157,12 +157,15 @@ question. The model then answers in plain English.
 | GET | `/insights` | browser test UI |
 
 ```bash
-# .env: INSIGHTS_ENABLED=true
-docker compose --profile insights up -d
-docker compose --profile insights exec ollama ollama pull llama3.2:3b
+# .env:
+#   INSIGHTS_ENABLED=true
+#   OPENAI_API_KEY=sk-...
+#   INSIGHTS_PROVIDER=openai
+#   INSIGHTS_MODEL=gpt-4.1-mini
 ```
 
-Prefer a larger / tool-capable Ollama model when available; tiny 3B models struggle with reliable tool calling.
+Use a tool-capable cloud model. Local Ollama is optional (`INSIGHTS_PROVIDER=ollama` +
+`docker compose --profile insights up -d`), not the default.
 
 ## Notes
 

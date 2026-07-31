@@ -45,20 +45,18 @@ API to work.
   feature tests cover auth + validation only (live PostGIS / LLM paths are verified manually).
 - Lint: `./vendor/bin/pint` (check-only: `--test`).
 
-### AI insights feature (`laravel/ai` + local Llama via Ollama) — optional
+### AI insights feature (`laravel/ai` + cloud provider) — optional
 - **Off by default.** Set `INSIGHTS_ENABLED=true` to register `/api/insights/*` and `GET /insights`.
-- Docker: `docker compose --profile insights up -d` starts Ollama; pull a model with
-  `docker compose --profile insights exec ollama ollama pull llama3.2:3b`.
+- Default provider is **OpenAI** (same as `config/ai.php`). Set `OPENAI_API_KEY` in `.env`.
+  Override with `INSIGHTS_PROVIDER` / `INSIGHTS_MODEL` (e.g. Anthropic).
 - Endpoint: `POST /api/insights/ask` (Bearer) — body `{ "question": "..." }`.
   `InsightsAgent` uses **tool calling** over warehouse APIs (search/get authorities &
-  applications, stats, forecasts, taxonomies, OpenAPI lookup) then returns structured
-  plain-English `answer`. Guarded `run_warehouse_sql` is last-resort only (`SqlGuard` +
-  `data_readonly`).
+  applications, transit, stats, forecasts, taxonomies, OpenAPI lookup) then returns
+  structured plain-English `answer`. Guarded `run_warehouse_sql` is last-resort only
+  (`SqlGuard` + `data_readonly`).
 - Browser test page: `GET /insights` when enabled.
-- Provider config: `config/ai.php`; defaults to `ollama` + `OLLAMA_MODEL` (see `.env.example`).
-- Prefer a tool-capable model; small 3B demos are unreliable for multi-step tool use.
+- Provider config: `config/ai.php` + `config/imby.php` (see `.env.example`).
+- Prefer a tool-capable cloud model; local Ollama remains optional via
+  `docker compose --profile insights` if you set `INSIGHTS_PROVIDER=ollama`.
 - Safety: `data_readonly` is SELECT-only (`imby_readonly`); `SqlGuard` enforces read-only SQL,
   row `LIMIT`, and blocks system catalogs. AI SDK conversation migrations are NOT installed.
-- Ollama gotcha on this VM class: the bundled runner may pick an AVX-512 ggml backend that
-  segfaults. Move AVX-512 backends out of `/usr/local/lib/ollama/` so it falls back to AVX2
-  `haswell`, then restart `ollama serve`.

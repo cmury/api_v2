@@ -8,13 +8,10 @@
 #   docker compose up -d --build
 #   docker compose exec app php artisan key:generate   # first time only
 #
-# Optional Insights (Ollama):
-#   INSIGHTS_ENABLED=true in .env
+# Optional local Ollama (Insights defaults to cloud OpenAI — see .env.example):
 #   docker compose --profile insights up -d
-#   docker compose --profile insights exec ollama ollama pull llama3.2:3b
 #
 # API: http://localhost:8001
-# Ollama (insights profile): http://localhost:11434
 
 services:
   app:
@@ -22,9 +19,6 @@ services:
     container_name: api-v2-app
     working_dir: /var/www/html
     env_file: .env
-    environment:
-      AI_DEFAULT_PROVIDER: ollama
-      OLLAMA_URL: http://ollama:11434
     volumes:
       - .:/var/www/html
     ports:

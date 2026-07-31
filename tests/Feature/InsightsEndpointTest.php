@@ -27,6 +27,8 @@ class InsightsEndpointTest extends TestCase
 
     public function test_it_defaults_insights_provider_from_config(): void
     {
-        $this->assertSame('ollama', config('imby.insights_provider'));
+        $this->assertSame('openai', config('imby.insights_provider'));
+        $this->assertSame('gpt-4.1-mini', config('imby.insights_model'));
+        $this->assertSame('openai', config('ai.default'));
     }
 }

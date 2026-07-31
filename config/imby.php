@@ -67,23 +67,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Insights (experimental tool-calling chat)
+    | Insights (tool-calling warehouse chat via laravel/ai)
     |--------------------------------------------------------------------------
     |
-    | Off by default. Enable for local AI testing; start Ollama with:
-    |   docker compose --profile insights up -d
+    | Off by default. Enable with INSIGHTS_ENABLED=true and configure a cloud
+    | provider (OpenAI by default — same as config/ai.php).
     |
-    | The agent selects warehouse tools (authorities, applications, stats, …)
-    | grounded in OpenAPI docs, with guarded SQL only as a last resort.
+    | The agent selects warehouse tools (authorities, applications, transit,
+    | stats, forecasts, taxonomies) grounded in docs/openapi.json. Guarded SQL
+    | (run_warehouse_sql) is a last resort when the REST surface cannot express
+    | the question.
     |
     */
 
     'insights_enabled' => (bool) env('INSIGHTS_ENABLED', false),
 
-    'insights_provider' => env('INSIGHTS_PROVIDER', env('AI_DEFAULT_PROVIDER', 'ollama')),
+    'insights_provider' => env('INSIGHTS_PROVIDER', env('AI_DEFAULT_PROVIDER', 'openai')),
 
-    'insights_model' => env('INSIGHTS_MODEL', env('OLLAMA_MODEL')),
+    'insights_model' => env('INSIGHTS_MODEL', env('OPENAI_MODEL', 'gpt-4.1-mini')),
 
-    'insights_timeout' => (int) env('INSIGHTS_TIMEOUT', 180),
+    'insights_timeout' => (int) env('INSIGHTS_TIMEOUT', 60),
 
 ];
