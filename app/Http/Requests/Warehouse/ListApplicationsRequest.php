@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Warehouse;
 
+use App\Http\Requests\Warehouse\Concerns\ValidatesTaxonomyFilters;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListApplicationsRequest extends FormRequest
 {
+    use ValidatesTaxonomyFilters;
+
     public function authorize(): bool
     {
         return true;
@@ -29,15 +32,7 @@ class ListApplicationsRequest extends FormRequest
             'date.type' => ['nullable', 'string'],
             'date.start' => ['nullable', 'date'],
             'date.end' => ['nullable', 'date'],
-            'application_class_ids' => ['sometimes', 'array'],
-            'application_class_ids.*' => ['integer'],
-            'development_class_ids' => ['sometimes', 'array'],
-            'development_class_ids.*' => ['integer'],
-            'decision_class_ids' => ['sometimes', 'array'],
-            'decision_class_ids.*' => ['integer'],
-            'legislation_ids' => ['sometimes', 'array'],
-            'legislation_ids.*' => ['integer'],
-            'legislation_id' => ['nullable', 'integer'],
+            ...$this->taxonomyFilterRules(),
             'estimated_cost_min' => ['nullable', 'numeric'],
             'estimated_cost_max' => ['nullable', 'numeric'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.config('imby.list_max_per_page', 100)],

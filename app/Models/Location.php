@@ -23,6 +23,7 @@ class Location extends Model
     protected function casts(): array
     {
         return [
+            'location_raw' => 'array',
             'parcel_raw' => 'array',
             'payload' => 'array',
         ];

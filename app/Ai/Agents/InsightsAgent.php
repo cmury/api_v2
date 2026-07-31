@@ -71,7 +71,7 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - Counts, breakdowns, charts → get_stats
         - Future volume → get_forecast
         - Class / type vocabulary (incl. BCA Class 2, Construction Certificate) → list_taxonomies
-          then pass application_class_ids / development_class_ids / decision_class_ids
+          then pass class ids and/or type ids (application_type_ids, development_type_ids, decision_type_ids)
         - Site suburb / address → search_locations (not council postal address)
         - Station / transport facility lookup → search_transit_stops
         - OpenAPI grounding → lookup_api_docs
@@ -82,7 +82,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - Default to current councils (exclude amalgamated) unless asked about former councils.
         - "Value" / construction value → estimated_cost.
         - Near-station questions use NSW transit_stops as the authoritative geometry source.
-        - Taxonomy filters are class-level for now (not specific type ids).
+        - Prefer type ids when the question names a specific type (e.g. Construction Certificate);
+          use class ids for broader buckets (e.g. all certificates / residential).
         - Follow-ups referring to "this/those/that" reuse prior entities from chat history.
         - If tools return errors or empty results, say so honestly and suggest a narrower question.
 

@@ -18,6 +18,9 @@ final class ApplicationFilter
      * @param  list<int>|null  $applicationClassIds
      * @param  list<int>|null  $developmentClassIds
      * @param  list<int>|null  $decisionClassIds
+     * @param  list<int>|null  $applicationTypeIds
+     * @param  list<int>|null  $developmentTypeIds
+     * @param  list<int>|null  $decisionTypeIds
      * @param  list<int>|null  $legislationIds
      */
     public function __construct(
@@ -39,6 +42,9 @@ final class ApplicationFilter
         public readonly ?int $radiusMeters = null,
         public readonly ?array $legislationIds = null,
         public readonly ?string $suburb = null,
+        public readonly ?array $applicationTypeIds = null,
+        public readonly ?array $developmentTypeIds = null,
+        public readonly ?array $decisionTypeIds = null,
     ) {}
 
     /**
@@ -85,6 +91,9 @@ final class ApplicationFilter
             radiusMeters: self::intOrNull($input['radius'] ?? $input['radius_meters'] ?? null),
             legislationIds: self::idList($input['legislation_ids'] ?? $input['legislation_id'] ?? null),
             suburb: self::stringOrNull($input['suburb'] ?? null),
+            applicationTypeIds: self::idList($input['application_type_ids'] ?? null),
+            developmentTypeIds: self::idList($input['development_type_ids'] ?? null),
+            decisionTypeIds: self::idList($input['decision_type_ids'] ?? null),
         );
     }
 

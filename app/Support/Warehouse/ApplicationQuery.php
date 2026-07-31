@@ -117,6 +117,33 @@ final class ApplicationQuery
             });
         }
 
+        if ($filter->applicationTypeIds !== null) {
+            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+                $q->selectRaw('1')
+                    ->from('application_application_types as aat')
+                    ->whereColumn('aat.application_id', "{$appsTable}.id")
+                    ->whereIn('aat.application_type_id', $filter->applicationTypeIds);
+            });
+        }
+
+        if ($filter->developmentTypeIds !== null) {
+            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+                $q->selectRaw('1')
+                    ->from('application_development_types as adt')
+                    ->whereColumn('adt.application_id', "{$appsTable}.id")
+                    ->whereIn('adt.development_type_id', $filter->developmentTypeIds);
+            });
+        }
+
+        if ($filter->decisionTypeIds !== null) {
+            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+                $q->selectRaw('1')
+                    ->from('application_decision_types as adct')
+                    ->whereColumn('adct.application_id', "{$appsTable}.id")
+                    ->whereIn('adct.decision_type_id', $filter->decisionTypeIds);
+            });
+        }
+
         if ($filter->legislationIds !== null) {
             $query->whereExists(function ($q) use ($filter, $appsTable): void {
                 $q->selectRaw('1')
@@ -175,6 +202,9 @@ final class ApplicationQuery
                 includeAmalgamated: $filter->includeAmalgamated,
                 legislationIds: $filter->legislationIds,
                 suburb: $filter->suburb,
+                applicationTypeIds: $filter->applicationTypeIds,
+                developmentTypeIds: $filter->developmentTypeIds,
+                decisionTypeIds: $filter->decisionTypeIds,
             );
 
             $this->applyToApplications($q, $appFilter, 'a');

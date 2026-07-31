@@ -298,6 +298,9 @@ final class ForecastQuery
             radiusMeters: $filter->radiusMeters,
             legislationIds: $filter->legislationIds,
             suburb: $suburb ?? $filter->suburb,
+            applicationTypeIds: $filter->applicationTypeIds,
+            developmentTypeIds: $filter->developmentTypeIds,
+            decisionTypeIds: $filter->decisionTypeIds,
         );
     }
 

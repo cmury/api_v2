@@ -24,6 +24,8 @@ class LocationResource extends JsonResource
             'state' => $this->state,
             'post_code' => $this->post_code,
             'country' => $this->country,
+            'location_raw' => $this->location_raw,
+            'parcel_raw' => $this->parcel_raw,
             'lat' => $this->when(isset($this->lat), $this->lat),
             'lng' => $this->when(isset($this->lng), $this->lng),
             'applications_count' => $this->whenCounted('applications'),

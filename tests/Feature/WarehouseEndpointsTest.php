@@ -100,9 +100,33 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/authorities/1/locations')->assertUnauthorized();
     }
 
+    public function test_authority_applications_require_authentication(): void
+    {
+        $this->getJson('/api/authorities/1/applications')->assertUnauthorized();
+    }
+
+    public function test_authority_amalgamation_requires_authentication(): void
+    {
+        $this->getJson('/api/authorities/1/amalgamation')->assertUnauthorized();
+    }
+
     public function test_authority_boundary_requires_authentication(): void
     {
         $this->getJson('/api/authorities/1/boundary')->assertUnauthorized();
+    }
+
+    public function test_applications_accept_type_id_filter_validation(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $response = $this->getJson('/api/applications?'.http_build_query([
+            'application_type_ids' => [1],
+            'development_type_ids' => [2],
+            'decision_type_ids' => [3],
+        ]));
+
+        $this->assertNotSame(422, $response->status());
+        $this->assertNotSame(401, $response->status());
     }
 
     public function test_taxonomy_types_require_authentication(): void

@@ -27,6 +27,9 @@ class ApplicationResource extends JsonResource
             'decision_authority' => $this->decision_authority,
             'decision_date' => $this->decision_date,
             'tracking_url' => $this->tracking_url,
+            'contact_email' => $this->contact_email,
+            'record_extracted' => $this->record_extracted,
+            'authority_record_modified' => $this->authority_record_modified,
             'authority' => AuthorityResource::make($this->whenLoaded('authority')),
             'locations' => LocationResource::collection($this->whenLoaded('locations')),
             'application_types' => $this->whenLoaded('applicationTypes', fn () => $this->applicationTypes->map(fn ($t) => [

@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Warehouse\ListApplicationsRequest;
 use App\Http\Requests\Warehouse\ListAuthoritiesRequest;
 use App\Http\Requests\Warehouse\ListAuthorityStatisticsRequest;
+use App\Http\Resources\ApplicationResource;
 use App\Http\Resources\AuthorityResource;
 use App\Http\Resources\AuthorityStatisticResource;
 use App\Http\Resources\LocationResource;
+use App\Models\Application;
 use App\Models\Authority;
 use App\Models\AuthorityStatistic;
 use App\Models\Location;
+use App\Support\Warehouse\ApplicationFilter;
+use App\Support\Warehouse\ApplicationQuery;
 use App\Support\Warehouse\AuthorityBoundary;
 use App\Support\Warehouse\AuthoritySearch;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +29,7 @@ class AuthorityController extends Controller
     public function __construct(
         private readonly AuthorityBoundary $authorityBoundary = new AuthorityBoundary,
         private readonly AuthoritySearch $authoritySearch = new AuthoritySearch,
+        private readonly ApplicationQuery $applicationQuery = new ApplicationQuery,
     ) {}
 
     public function index(ListAuthoritiesRequest $request): AnonymousResourceCollection
@@ -166,6 +172,49 @@ class AuthorityController extends Controller
         return LocationResource::collection($locations);
     }
 
+    /**
+     * Applications for an authority (same filters as GET /applications, authority fixed by route).
+     */
+    public function applications(ListApplicationsRequest $request, Authority $authority): AnonymousResourceCollection
+    {
+        $perPage = (int) ($request->integer('per_page') ?: config('imby.list_per_page', 25));
+        $filter = ApplicationFilter::fromArray([
+            ...$request->validated(),
+            'authority_id' => $authority->id,
+        ]);
+
+        $query = Application::query()->with(['authority']);
+        $this->applicationQuery->applyToApplications($query, $filter);
+
+        [$column, $direction] = $this->parseApplicationOrder($request->input('order', '-submitted'));
+        $allowed = ['submitted', 'estimated_cost', 'created_at', 'authority_no', 'portal_no'];
+        if (! in_array($column, $allowed, true)) {
+            $column = 'submitted';
+        }
+
+        $query->orderBy($column, $direction);
+
+        return ApplicationResource::collection($query->paginate($perPage));
+    }
+
+    /**
+     * Successor (amalgamated_into) and former councils (predecessors) for this authority.
+     */
+    public function amalgamation(Authority $authority): JsonResponse
+    {
+        $successor = $authority->amalgamatedInto()->first();
+        $predecessors = $authority->predecessors()->orderBy('name')->get();
+
+        return response()->json([
+            'message' => 'authority_amalgamation',
+            'data' => [
+                'authority' => new AuthorityResource($authority),
+                'amalgamated_into' => $successor ? new AuthorityResource($successor) : null,
+                'predecessors' => AuthorityResource::collection($predecessors),
+            ],
+        ]);
+    }
+
     public function boundary(Authority $authority): JsonResponse
     {
         $feature = $this->authorityBoundary->feature($authority);
@@ -245,5 +294,18 @@ class AuthorityController extends Controller
         if ($request->filled('source')) {
             $query->where($column('source'), 'ilike', '%'.$request->input('source').'%');
         }
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function parseApplicationOrder(mixed $order): array
+    {
+        $order = (string) ($order ?: '-submitted');
+        if (str_starts_with($order, '-')) {
+            return [substr($order, 1), 'desc'];
+        }
+
+        return [$order, 'asc'];
     }
 }

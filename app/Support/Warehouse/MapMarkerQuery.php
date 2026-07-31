@@ -61,6 +61,9 @@ final class MapMarkerQuery
             includeAmalgamated: $filter->includeAmalgamated,
             legislationIds: $filter->legislationIds,
             suburb: $filter->suburb,
+            applicationTypeIds: $filter->applicationTypeIds,
+            developmentTypeIds: $filter->developmentTypeIds,
+            decisionTypeIds: $filter->decisionTypeIds,
         );
         $this->applicationQuery->applyToApplications($query, $appOnly, 'a');
 

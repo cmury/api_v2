@@ -31,6 +31,9 @@ trait WarehouseFilterSchema
             'application_class_ids' => $schema->string()->description('Comma-separated application class ids from ListTaxonomies.'),
             'development_class_ids' => $schema->string()->description('Comma-separated development class ids (BCA/NCC classes).'),
             'decision_class_ids' => $schema->string()->description('Comma-separated decision class ids (Approved, In Progress, …).'),
+            'application_type_ids' => $schema->string()->description('Comma-separated application type ids from ListTaxonomies.'),
+            'development_type_ids' => $schema->string()->description('Comma-separated development type ids from ListTaxonomies.'),
+            'decision_type_ids' => $schema->string()->description('Comma-separated decision type ids from ListTaxonomies.'),
             'legislation_ids' => $schema->string()->description('Comma-separated legislation ids.'),
             'include_amalgamated' => $schema->boolean()->description('Include former/amalgamated councils. Default false.'),
         ];

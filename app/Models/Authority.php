@@ -49,6 +49,11 @@ class Authority extends Model
         return $this->belongsTo(self::class, 'amalgamated');
     }
 
+    public function predecessors(): HasMany
+    {
+        return $this->hasMany(self::class, 'amalgamated');
+    }
+
     public function scopeCurrent($query)
     {
         return $query->whereNull('amalgamated');

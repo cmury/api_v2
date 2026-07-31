@@ -25,6 +25,9 @@ final class FilterFromTool
             'application_class_ids' => self::idList($request, 'application_class_ids'),
             'development_class_ids' => self::idList($request, 'development_class_ids'),
             'decision_class_ids' => self::idList($request, 'decision_class_ids'),
+            'application_type_ids' => self::idList($request, 'application_type_ids'),
+            'development_type_ids' => self::idList($request, 'development_type_ids'),
+            'decision_type_ids' => self::idList($request, 'decision_type_ids'),
             'legislation_ids' => self::idList($request, 'legislation_ids'),
             'amalgamated' => $request->boolean('include_amalgamated'),
         ], static fn ($v) => $v !== null && $v !== [] && $v !== '');

@@ -86,6 +86,19 @@ class WarehouseFilterTest extends TestCase
         $this->assertSame([10, 20], $filter->legislationIds);
     }
 
+    public function test_application_filter_accepts_type_ids(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'application_type_ids' => [1, 2],
+            'development_type_ids' => [3],
+            'decision_type_ids' => [4, 5],
+        ]);
+
+        $this->assertSame([1, 2], $filter->applicationTypeIds);
+        $this->assertSame([3], $filter->developmentTypeIds);
+        $this->assertSame([4, 5], $filter->decisionTypeIds);
+    }
+
     public function test_chart_rejects_unknown_format(): void
     {
         $this->expectException(InvalidArgumentException::class);

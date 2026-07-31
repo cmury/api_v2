@@ -76,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/authorities/statistics', [AuthorityController::class, 'statisticsIndex']);
     Route::get('/authorities/{authority}/statistics', [AuthorityController::class, 'statistics']);
     Route::get('/authorities/{authority}/locations', [AuthorityController::class, 'locations']);
+    Route::get('/authorities/{authority}/applications', [AuthorityController::class, 'applications']);
+    Route::get('/authorities/{authority}/amalgamation', [AuthorityController::class, 'amalgamation']);
     Route::get('/authorities/{authority}/boundary', [AuthorityController::class, 'boundary']);
     Route::get('/authorities/{authority}', [AuthorityController::class, 'show']);
 

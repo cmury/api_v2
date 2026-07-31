@@ -34,8 +34,9 @@ class SearchApplicationsNearTransitStop implements Tool
     {
         return 'Find development applications within a radius (metres) of an NSW transit stop. '
             .'Resolve the stop via transit_stop_id (from search_transit_stops) or stop_search (station name). '
-            .'Filter with application_class_ids / development_class_ids / decision_class_ids from list_taxonomies '
-            .'(class-level only). Example: Construction Certificates near Chatswood Railway Station.';
+            .'Filter with class ids and/or type ids from list_taxonomies '
+            .'(e.g. application_type_ids for Construction Certificate). '
+            .'Example: Construction Certificates near Chatswood Railway Station.';
     }
 
     public function handle(Request $request): Stringable|string
@@ -56,6 +57,9 @@ class SearchApplicationsNearTransitStop implements Tool
             'application_class_ids' => $filter->applicationClassIds,
             'development_class_ids' => $filter->developmentClassIds,
             'decision_class_ids' => $filter->decisionClassIds,
+            'application_type_ids' => $filter->applicationTypeIds,
+            'development_type_ids' => $filter->developmentTypeIds,
+            'decision_type_ids' => $filter->decisionTypeIds,
             'legislation_ids' => $filter->legislationIds,
             'amalgamated' => $filter->includeAmalgamated,
         ], static fn ($v) => $v !== null && $v !== [] && $v !== '');

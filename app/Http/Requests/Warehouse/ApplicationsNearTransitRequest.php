@@ -20,7 +20,15 @@ class ApplicationsNearTransitRequest extends FormRequest
             ]);
         }
 
-        foreach (['application_class_ids', 'development_class_ids', 'decision_class_ids', 'legislation_ids'] as $key) {
+        foreach ([
+            'application_class_ids',
+            'development_class_ids',
+            'decision_class_ids',
+            'application_type_ids',
+            'development_type_ids',
+            'decision_type_ids',
+            'legislation_ids',
+        ] as $key) {
             $value = $this->input($key);
             if (is_string($value) && $value !== '') {
                 $this->merge([
@@ -53,6 +61,12 @@ class ApplicationsNearTransitRequest extends FormRequest
             'development_class_ids.*' => ['integer'],
             'decision_class_ids' => ['sometimes', 'array'],
             'decision_class_ids.*' => ['integer'],
+            'application_type_ids' => ['sometimes', 'array'],
+            'application_type_ids.*' => ['integer'],
+            'development_type_ids' => ['sometimes', 'array'],
+            'development_type_ids.*' => ['integer'],
+            'decision_type_ids' => ['sometimes', 'array'],
+            'decision_type_ids.*' => ['integer'],
             'legislation_ids' => ['sometimes', 'array'],
             'legislation_ids.*' => ['integer'],
             'estimated_cost_min' => ['nullable', 'numeric'],
@@ -80,6 +94,9 @@ class ApplicationsNearTransitRequest extends FormRequest
             'application_class_ids',
             'development_class_ids',
             'decision_class_ids',
+            'application_type_ids',
+            'development_type_ids',
+            'decision_type_ids',
             'legislation_ids',
             'estimated_cost_min',
             'estimated_cost_max',
