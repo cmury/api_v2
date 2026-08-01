@@ -35,6 +35,8 @@ API to work.
 - Facilities: `/api/facilities` (+ near/applications).
 - Planning controls: `/api/planning-controls`, `/api/planning-controls/at-point`, taxonomies for layers/codes.
 - Contacts: `/api/contacts`, `/api/applications/{id}/contacts` (contribute via POST).
+- Claims: `/api/user/contact-profile`, `/api/user/claims`, `POST|DELETE /api/applications/{id}/claim`.
+- Portfolio: `/api/contacts/{id}/portfolio` (owner add/remove; published list for others).
 - Favourites: CRUD `/api/user/favourites`.
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.

@@ -249,4 +249,57 @@ class WarehouseEndpointsTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('application_id');
     }
+
+    public function test_claims_require_authentication(): void
+    {
+        $this->getJson('/api/user/claims')->assertUnauthorized();
+        $this->getJson('/api/user/contact-profile')->assertUnauthorized();
+        $this->postJson('/api/applications/1/claim', ['role' => 'architect'])->assertUnauthorized();
+        $this->deleteJson('/api/applications/1/claim')->assertUnauthorized();
+    }
+
+    public function test_application_claim_requires_role(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->postJson('/api/applications/1/claim', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('role');
+    }
+
+    public function test_application_claim_rejects_invalid_role(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->postJson('/api/applications/1/claim', ['role' => 'not_a_role'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('role');
+    }
+
+    public function test_portfolio_mutations_require_authentication(): void
+    {
+        $this->postJson('/api/contacts/1/portfolio', [
+            'application_id' => 1,
+            'role' => 'architect',
+        ])->assertUnauthorized();
+
+        $this->deleteJson('/api/contacts/1/portfolio/1')->assertUnauthorized();
+    }
+
+    public function test_portfolio_store_validation_rules(): void
+    {
+        $rules = (new \App\Http\Requests\Warehouse\StoreContactPortfolioRequest)->rules();
+
+        $validator = validator([], $rules);
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('application_id', $validator->errors()->toArray());
+        $this->assertArrayHasKey('role', $validator->errors()->toArray());
+
+        $validator = validator([
+            'application_id' => 1,
+            'role' => 'not_a_role',
+        ], $rules);
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey('role', $validator->errors()->toArray());
+    }
 }

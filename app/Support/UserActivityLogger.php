@@ -34,6 +34,14 @@ final class UserActivityLogger
 
     public const CONTACT_CONTRIBUTED = 'contact_contributed';
 
+    public const APPLICATION_CLAIMED = 'application_claimed';
+
+    public const APPLICATION_UNCLAIMED = 'application_unclaimed';
+
+    public const PORTFOLIO_ITEM_ADDED = 'portfolio_item_added';
+
+    public const PORTFOLIO_ITEM_REMOVED = 'portfolio_item_removed';
+
     /**
      * @param  array<string, mixed>|null  $payload
      */

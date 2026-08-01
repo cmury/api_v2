@@ -39,6 +39,24 @@ final class DeleteUserAccount
                     ->update(['contributed_by_user_id' => null]);
             }
 
+            if (Schema::connection($connection)->hasTable('contacts')) {
+                $owned = DB::connection($connection)
+                    ->table('contacts')
+                    ->where('payload->owner_user_id', $userId)
+                    ->get(['id', 'payload']);
+
+                foreach ($owned as $row) {
+                    $payload = is_string($row->payload)
+                        ? json_decode($row->payload, true)
+                        : (array) $row->payload;
+                    unset($payload['owner_user_id']);
+                    DB::connection($connection)
+                        ->table('contacts')
+                        ->where('id', $row->id)
+                        ->update(['payload' => json_encode($payload ?: null)]);
+                }
+            }
+
             // Activity log FK is nullOnDelete; delete rows so nothing remains.
             UserLog::query()->where('user_id', $userId)->delete();
 

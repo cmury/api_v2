@@ -24,7 +24,10 @@ class ContactResource extends JsonResource
             'website' => $this->website,
             'abn' => $this->abn,
             'notes' => $this->notes,
-            'applications_count' => $this->whenCounted('applications'),
+            'applications_count' => $this->when(
+                isset($this->applications_count),
+                fn () => (int) $this->applications_count,
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

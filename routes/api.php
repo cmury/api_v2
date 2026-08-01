@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\ApplicationClaimController;
 use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ContactPortfolioController;
 use App\Http\Controllers\Api\FacilityController;
 use App\Http\Controllers\Api\ForecastController;
 use App\Http\Controllers\Api\InsightsController;
@@ -53,28 +55,40 @@ Route::prefix('auth')->group(function () {
 
 // User routes
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+
     // User profile
     Route::get('/profile', [UserController::class, 'show']);
     Route::put('/profile', [UserController::class, 'update']);
+
     // User settings
     Route::get('/settings', [UserController::class, 'showSettings']);
     Route::put('/settings', [UserController::class, 'updateSettings']);
+
     // User log
     Route::get('/log', [UserController::class, 'log']);
+
     // User searches
     Route::get('/searches', [UserSearchController::class, 'index']);
     Route::post('/searches', [UserSearchController::class, 'store']);
     Route::get('/searches/{search}', [UserSearchController::class, 'show']);
     Route::put('/searches/{search}', [UserSearchController::class, 'update']);
     Route::delete('/searches/{search}', [UserSearchController::class, 'destroy']);
+
     // User favourites
     Route::get('/favourites', [UserFavouriteController::class, 'index']);
     Route::post('/favourites', [UserFavouriteController::class, 'store']);
     Route::get('/favourites/{favourite}', [UserFavouriteController::class, 'show']);
     Route::put('/favourites/{favourite}', [UserFavouriteController::class, 'update']);
     Route::delete('/favourites/{favourite}', [UserFavouriteController::class, 'destroy']);
+
+    // Professional contact profile + application claims
+    Route::get('/contact-profile', [ApplicationClaimController::class, 'profile']);
+    Route::put('/contact-profile', [ApplicationClaimController::class, 'upsertProfile']);
+    Route::get('/claims', [ApplicationClaimController::class, 'index']);
+
     // Delete user account
     Route::delete('/', [UserController::class, 'destroy']);
+
 });
 
 // Warehouse read APIs (ported from old api, collapsed where duplicated)
@@ -100,11 +114,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}/legislation', [ApplicationController::class, 'legislations']);
     Route::get('/applications/{application}/contacts', [ApplicationController::class, 'contacts']);
     Route::post('/applications/{application}/contacts', [ApplicationController::class, 'storeContact']);
+    Route::post('/applications/{application}/claim', [ApplicationClaimController::class, 'store']);
+    Route::delete('/applications/{application}/claim', [ApplicationClaimController::class, 'destroy']);
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
 
     // Contacts (people / organisations on applications)
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::get('/contacts/{contact}/applications', [ContactController::class, 'applications']);
+    Route::get('/contacts/{contact}/portfolio', [ContactPortfolioController::class, 'index']);
+    Route::post('/contacts/{contact}/portfolio', [ContactPortfolioController::class, 'store']);
+    Route::delete('/contacts/{contact}/portfolio/{applicationContact}', [ContactPortfolioController::class, 'destroy']);
     Route::get('/contacts/{contact}', [ContactController::class, 'show']);
 
     // Legislation endpoints
@@ -142,4 +161,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/taxonomies/decision-types', [TaxonomyController::class, 'decisionTypes']);
     Route::get('/taxonomies/planning-layers', [PlanningControlController::class, 'layers']);
     Route::get('/taxonomies/planning-codes', [PlanningControlController::class, 'codes']);
+
 });
