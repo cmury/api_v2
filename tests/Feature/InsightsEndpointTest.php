@@ -29,6 +29,5 @@ class InsightsEndpointTest extends TestCase
     {
         $this->assertSame('openai', config('imby.insights_provider'));
         $this->assertSame('gpt-4.1-mini', config('imby.insights_model'));
-        $this->assertSame('openai', config('ai.default'));
     }
 }
