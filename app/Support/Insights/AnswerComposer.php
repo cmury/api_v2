@@ -163,6 +163,13 @@ final class AnswerComposer
             return self::formatFacilities($byName['search_facilities']['facilities']);
         }
 
+        $planningRows = $byName['get_planning_at_point']['planning_controls']
+            ?? $byName['search_planning_controls']['planning_controls']
+            ?? null;
+        if (is_array($planningRows)) {
+            return self::formatPlanningControls($planningRows, $byName['get_planning_at_point'] ?? null);
+        }
+
         if (isset($byName['get_stats']) && is_array($byName['get_stats'])) {
             return self::formatStats($byName['get_stats']);
         }
@@ -392,6 +399,52 @@ final class AnswerComposer
         return [
             'answer' => "Here are the facilities I found:\n".implode("\n", $lines),
             'rows' => array_values(array_filter($facilities, 'is_array')),
+            'warnings' => [],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $controls
+     * @param  array<string, mixed>|null  $pointMeta
+     * @return array{answer: string, rows: list<array<string, mixed>>, warnings: list<string>}
+     */
+    private static function formatPlanningControls(array $controls, ?array $pointMeta = null): array
+    {
+        if ($controls === []) {
+            $suffix = '';
+            if (is_array($pointMeta) && isset($pointMeta['lat'], $pointMeta['lng'])) {
+                $suffix = ' at '.$pointMeta['lat'].', '.$pointMeta['lng'];
+            }
+
+            return [
+                'answer' => 'No planning controls matched'.$suffix.'.',
+                'rows' => [],
+                'warnings' => [],
+            ];
+        }
+
+        $lines = [];
+        foreach (array_values($controls) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $n = $i + 1;
+            $layer = (string) ($row['layer'] ?? 'control');
+            $code = (string) ($row['code'] ?? '');
+            $label = (string) ($row['label'] ?? '');
+            $epi = (string) ($row['epi_name'] ?? '');
+            $parts = array_filter([$layer, $code !== '' ? $code : null, $label !== '' ? $label : null, $epi !== '' ? $epi : null]);
+            $lines[] = $n.'. '.implode(' — ', $parts);
+        }
+
+        $prefix = 'Here are the planning controls I found';
+        if (is_array($pointMeta) && isset($pointMeta['lat'], $pointMeta['lng'])) {
+            $prefix = 'Planning controls at '.$pointMeta['lat'].', '.$pointMeta['lng'];
+        }
+
+        return [
+            'answer' => $prefix.":\n".implode("\n", $lines),
+            'rows' => array_values(array_filter($controls, 'is_array')),
             'warnings' => [],
         ];
     }

@@ -3,7 +3,7 @@
     "info": {
         "title": "IMBY API",
         "version": "0.1.0",
-        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Volume forecast | `GET /forecasts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities` |\n| Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.\n\n**Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
+        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Volume forecast | `GET /forecasts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities`, `/planning-controls` |\n| Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |\n| Zoning / controls at a point | `GET /planning-controls/at-point?lat=&lng=` |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.\n\n**Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.\n\n**Planning controls** (`planning_controls`) expose NSW EPI layers (zoning first; FSR/height/heritage as loaded). Use `/planning-controls/at-point` for site lookups and `/taxonomies/planning-layers` / `planning-codes` for vocabulary.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
     },
     "servers": [
         {
@@ -6186,6 +6186,669 @@
                 "security": []
             }
         },
+        "/planning-controls": {
+            "get": {
+                "operationId": "planningControl.index",
+                "description": "Example: `GET /planning-controls?layer=zoning&code=R2&lga_name=Willoughby`",
+                "summary": "Browse EPI / principal planning control polygons",
+                "tags": [
+                    "PlanningControl"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "layer",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "epi_type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 8
+                        }
+                    },
+                    {
+                        "name": "lga_name",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 80
+                        }
+                    },
+                    {
+                        "name": "authority_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "source",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "bounds[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    {
+                        "name": "include_geometry",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "geometry",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "include_payload",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `PlanningControlResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PlanningControlResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/planning-controls/at-point": {
+            "get": {
+                "operationId": "planningControl.atPoint",
+                "description": "Example: `GET /planning-controls/at-point?lat=-33.796&lng=151.183&layers[]=zoning`",
+                "summary": "Planning controls that contain a WGS84 point (point-in-polygon)",
+                "tags": [
+                    "PlanningControl"
+                ],
+                "parameters": [
+                    {
+                        "name": "lat",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "minimum": -90,
+                            "maximum": 90
+                        }
+                    },
+                    {
+                        "name": "lng",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "minimum": -180,
+                            "maximum": 180
+                        }
+                    },
+                    {
+                        "name": "layers[]",
+                        "in": "query",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "maxLength": 32
+                            }
+                        }
+                    },
+                    {
+                        "name": "layer",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    },
+                    {
+                        "name": "include_geometry",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "geometry",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 32
+                        }
+                    },
+                    {
+                        "name": "include_payload",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 200
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `PlanningControlResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PlanningControlResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "lat": {
+                                                    "type": "number"
+                                                },
+                                                "lng": {
+                                                    "type": "number"
+                                                },
+                                                "layers": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "prefixItems": [
+                                                                {
+                                                                    "type": "string"
+                                                                }
+                                                            ],
+                                                            "minItems": 1,
+                                                            "maxItems": 1,
+                                                            "additionalItems": false
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        }
+                                                    ]
+                                                },
+                                                "count": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "lat",
+                                                "lng",
+                                                "layers",
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/planning-controls/{planningControl}": {
+            "get": {
+                "operationId": "planningControl.show",
+                "summary": "Fetch one planning control (geometry included by default)",
+                "tags": [
+                    "PlanningControl"
+                ],
+                "parameters": [
+                    {
+                        "name": "planningControl",
+                        "in": "path",
+                        "required": true,
+                        "description": "The planning control ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PlanningControlResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlanningControlResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/taxonomies/planning-layers": {
+            "get": {
+                "operationId": "planningControl.layers",
+                "summary": "Distinct planning layers present in the warehouse",
+                "tags": [
+                    "PlanningControl"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "planning_layers"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "layer": {
+                                                        "type": "string"
+                                                    },
+                                                    "count": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "layer",
+                                                    "count"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/taxonomies/planning-codes": {
+            "get": {
+                "operationId": "planningControl.codes",
+                "description": "Example: `GET /taxonomies/planning-codes?layer=zoning&lga_name=Willoughby`",
+                "summary": "Distinct planning codes (optionally scoped to a layer / LGA)",
+                "tags": [
+                    "PlanningControl"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "planning_codes"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "code": {
+                                                        "type": "string"
+                                                    },
+                                                    "label": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "count": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "code",
+                                                    "label",
+                                                    "count"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/stats": {
             "get": {
                 "operationId": "stats.show",
@@ -9259,6 +9922,128 @@
                     "password"
                 ],
                 "title": "LoginRequest"
+            },
+            "PlanningControlResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "source_id": {
+                        "type": "string"
+                    },
+                    "layer": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "label": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "purpose": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "epi_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "epi_type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "lga_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "authority_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "authority": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/AuthorityResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "source_modified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "geometry": {
+                        "type": [
+                            "object",
+                            "null"
+                        ]
+                    },
+                    "payload": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {}
+                    }
+                },
+                "required": [
+                    "id",
+                    "source",
+                    "source_id",
+                    "layer",
+                    "code",
+                    "label",
+                    "purpose",
+                    "epi_name",
+                    "epi_type",
+                    "lga_name",
+                    "authority_id",
+                    "source_modified_at",
+                    "created_at",
+                    "updated_at",
+                    "geometry",
+                    "payload"
+                ],
+                "title": "PlanningControlResource"
             },
             "RegisterRequest": {
                 "type": "object",

@@ -5,6 +5,7 @@ namespace App\Ai\Agents;
 use App\Ai\Tools\GetApplication;
 use App\Ai\Tools\GetAuthority;
 use App\Ai\Tools\GetForecast;
+use App\Ai\Tools\GetPlanningAtPoint;
 use App\Ai\Tools\GetStats;
 use App\Ai\Tools\ListTaxonomies;
 use App\Ai\Tools\LookupApiDocs;
@@ -14,6 +15,7 @@ use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
 use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
+use App\Ai\Tools\SearchPlanningControls;
 use App\Support\Insights\OpenApiCatalog;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxSteps;
@@ -75,6 +77,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - NSW vs ACT feed → pass source=nsw-eplanning or source=act-dafinder
         - Site suburb / address → search_locations (not council postal address)
         - Station / school / facility lookup → search_facilities
+        - Zoning / FSR / height at a site → get_planning_at_point (lat/lng)
+        - Browse planning controls by LGA / code → search_planning_controls
         - OpenAPI grounding → lookup_api_docs
         - Novel SQL → run_warehouse_sql
 
@@ -83,6 +87,7 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - Default to current councils (exclude amalgamated) unless asked about former councils.
         - "Value" / construction value → estimated_cost.
         - Near-facility questions use the facilities table (transport + education POIs) as geometry source.
+        - Planning zone questions use planning_controls (layer=zoning unless asked for FSR/height/heritage).
         - Prefer type ids when the question names a specific type (e.g. Construction Certificate);
           use class ids for broader buckets (e.g. all certificates / residential).
         - Follow-ups referring to "this/those/that" reuse prior entities from chat history.
@@ -113,6 +118,8 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
             new SearchLocations,
             new SearchFacilities,
             new SearchApplicationsNearFacility,
+            new SearchPlanningControls,
+            new GetPlanningAtPoint,
             new GetStats,
             new GetForecast,
             new ListTaxonomies,

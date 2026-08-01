@@ -170,6 +170,24 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/facilities/applications-near')->assertUnauthorized();
     }
 
+    public function test_planning_controls_require_authentication(): void
+    {
+        $this->getJson('/api/planning-controls')->assertUnauthorized();
+        $this->getJson('/api/planning-controls/1')->assertUnauthorized();
+        $this->getJson('/api/planning-controls/at-point')->assertUnauthorized();
+        $this->getJson('/api/taxonomies/planning-layers')->assertUnauthorized();
+        $this->getJson('/api/taxonomies/planning-codes')->assertUnauthorized();
+    }
+
+    public function test_planning_controls_at_point_requires_coordinates(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->getJson('/api/planning-controls/at-point')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['lat', 'lng']);
+    }
+
     public function test_facilities_applications_near_requires_identifier(): void
     {
         Sanctum::actingAs(new User(['email' => 'tester@example.com']));

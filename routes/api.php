@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PlanningControlController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TaxonomyController;
@@ -102,6 +103,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/facilities/{facility}/applications', [FacilityController::class, 'applications']);
     Route::get('/facilities/{facility}', [FacilityController::class, 'show']);
 
+    // Principal planning controls (zoning, FSR, height, …)
+    Route::get('/planning-controls', [PlanningControlController::class, 'index']);
+    Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
+    Route::get('/planning-controls/{planningControl}', [PlanningControlController::class, 'show']);
+
     // Stats, charts, and forecasts
     Route::get('/stats', [StatsController::class, 'show']);
     Route::get('/charts', [StatsController::class, 'chart']);
@@ -114,4 +120,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/taxonomies/development-types', [TaxonomyController::class, 'developmentTypes']);
     Route::get('/taxonomies/decision-classes', [TaxonomyController::class, 'decisionClasses']);
     Route::get('/taxonomies/decision-types', [TaxonomyController::class, 'decisionTypes']);
+    Route::get('/taxonomies/planning-layers', [PlanningControlController::class, 'layers']);
+    Route::get('/taxonomies/planning-codes', [PlanningControlController::class, 'codes']);
 });

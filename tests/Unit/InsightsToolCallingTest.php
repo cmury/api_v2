@@ -6,6 +6,7 @@ use App\Ai\Agents\InsightsAgent;
 use App\Ai\Tools\GetApplication;
 use App\Ai\Tools\GetAuthority;
 use App\Ai\Tools\GetForecast;
+use App\Ai\Tools\GetPlanningAtPoint;
 use App\Ai\Tools\GetStats;
 use App\Ai\Tools\ListTaxonomies;
 use App\Ai\Tools\LookupApiDocs;
@@ -15,6 +16,7 @@ use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
 use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
+use App\Ai\Tools\SearchPlanningControls;
 use App\Support\Insights\InsightsPromptContext;
 use App\Support\Insights\OpenApiCatalog;
 use App\Support\Insights\ToolJson;
@@ -47,6 +49,8 @@ class InsightsToolCallingTest extends TestCase
             'search_locations',
             'search_facilities',
             'search_applications_near_facility',
+            'search_planning_controls',
+            'get_planning_at_point',
             'get_stats',
             'get_forecast',
             'list_taxonomies',
@@ -120,6 +124,8 @@ class InsightsToolCallingTest extends TestCase
             SearchLocations::class,
             SearchFacilities::class,
             SearchApplicationsNearFacility::class,
+            SearchPlanningControls::class,
+            GetPlanningAtPoint::class,
             GetStats::class,
             GetForecast::class,
             ListTaxonomies::class,

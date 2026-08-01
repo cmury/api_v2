@@ -33,6 +33,7 @@ API to work.
 - Map: `GET /api/map/markers` (public GeoJSON), `GET /api/map/markers/csv` (Bearer).
 - Entities: `/api/authorities`, `/api/applications`, `/api/locations`, `/api/legislation` (+ nested applications).
 - Facilities: `/api/facilities` (+ near/applications).
+- Planning controls: `/api/planning-controls`, `/api/planning-controls/at-point`, taxonomies for layers/codes.
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 

@@ -63,9 +63,10 @@ IMBY product JSON API for planning warehouse data (`imby_data_v2`).
 | Single number / aggregate | `GET /stats` |
 | Plot (Chart.js-ready) | `GET /charts` |
 | Volume forecast | `GET /forecasts` |
-| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities` |
+| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities`, `/planning-controls` |
 | Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |
-| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}` |
+| Zoning / controls at a point | `GET /planning-controls/at-point?lat=&lng=` |
+| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}` |
 | Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |
 | Map pins | `GET /map/markers` |
 
@@ -74,6 +75,8 @@ IMBY product JSON API for planning warehouse data (`imby_data_v2`).
 **Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.
 
 **Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.
+
+**Planning controls** (`planning_controls`) expose NSW EPI layers (zoning first; FSR/height/heritage as loaded). Use `/planning-controls/at-point` for site lookups and `/taxonomies/planning-layers` / `planning-codes` for vocabulary.
 
 Schema is owned by **agents_v2** migrations — this service exposes HTTP only.
 MD,
