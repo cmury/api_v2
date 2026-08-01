@@ -24,6 +24,21 @@ final class DeleteUserAccount
             UserPreference::query()->where('user_id', $userId)->delete();
             UserSearch::query()->where('user_id', $userId)->delete();
 
+            if (Schema::connection($connection)->hasTable('users_favourites')) {
+                DB::connection($connection)
+                    ->table('users_favourites')
+                    ->where('user_id', $userId)
+                    ->delete();
+            }
+
+            // Null out contact contributions so application_contacts rows remain.
+            if (Schema::connection($connection)->hasTable('application_contacts')) {
+                DB::connection($connection)
+                    ->table('application_contacts')
+                    ->where('contributed_by_user_id', $userId)
+                    ->update(['contributed_by_user_id' => null]);
+            }
+
             // Activity log FK is nullOnDelete; delete rows so nothing remains.
             UserLog::query()->where('user_id', $userId)->delete();
 

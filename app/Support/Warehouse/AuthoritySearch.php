@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 /**
  * Shared authority list query used by GET /api/authorities and search_authorities tool.
  */
-final class AuthoritySearch
+class AuthoritySearch
 {
     private const ORDER_COLUMNS = ['name', 'state', 'region', 'created_at', 'applications_count'];
 

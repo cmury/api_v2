@@ -150,6 +150,7 @@ IMBY warehouse API intents:
 - Facility lookup → SearchFacilities (GET /facilities)
 - Zoning / controls at a point → GetPlanningAtPoint (GET /planning-controls/at-point)
 - Browse planning layers → SearchPlanningControls (GET /planning-controls)
+- Contacts / professionals → SearchContacts (GET /contacts)
 - Entity detail → GetAuthority / GetApplication
 - Filter vocabulary → ListTaxonomies
 - Novel joins the REST surface cannot express → RunWarehouseSql (last resort)

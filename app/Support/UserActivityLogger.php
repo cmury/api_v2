@@ -26,6 +26,14 @@ final class UserActivityLogger
 
     public const SEARCH_DELETED = 'search_deleted';
 
+    public const FAVOURITE_CREATED = 'favourite_created';
+
+    public const FAVOURITE_UPDATED = 'favourite_updated';
+
+    public const FAVOURITE_DELETED = 'favourite_deleted';
+
+    public const CONTACT_CONTRIBUTED = 'contact_contributed';
+
     /**
      * @param  array<string, mixed>|null  $payload
      */

@@ -205,4 +205,48 @@ class WarehouseEndpointsTest extends TestCase
         $this->assertNotSame(422, $response->status());
         $this->assertNotSame(401, $response->status());
     }
+
+    public function test_contacts_require_authentication(): void
+    {
+        $this->getJson('/api/contacts')->assertUnauthorized();
+        $this->getJson('/api/contacts/1')->assertUnauthorized();
+        $this->getJson('/api/contacts/1/applications')->assertUnauthorized();
+        $this->getJson('/api/applications/1/contacts')->assertUnauthorized();
+    }
+
+    public function test_application_contact_contribute_requires_role(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->postJson('/api/applications/1/contacts', ['name' => 'Acme Architects'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('role');
+    }
+
+    public function test_application_contact_contribute_rejects_invalid_role(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->postJson('/api/applications/1/contacts', [
+            'name' => 'Acme Architects',
+            'role' => 'not_a_role',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('role');
+    }
+
+    public function test_favourites_require_authentication(): void
+    {
+        $this->getJson('/api/user/favourites')->assertUnauthorized();
+        $this->postJson('/api/user/favourites', ['application_id' => 1])->assertUnauthorized();
+    }
+
+    public function test_favourite_store_requires_application_id(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->postJson('/api/user/favourites', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('application_id');
+    }
 }

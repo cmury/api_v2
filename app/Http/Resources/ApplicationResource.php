@@ -58,6 +58,7 @@ class ApplicationResource extends JsonResource
                     : null,
             ])),
             'legislation' => LegislationResource::collection($this->whenLoaded('legislations')),
+            'contacts' => ApplicationContactResource::collection($this->whenLoaded('applicationContacts')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

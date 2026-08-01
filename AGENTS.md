@@ -34,6 +34,8 @@ API to work.
 - Entities: `/api/authorities`, `/api/applications`, `/api/locations`, `/api/legislation` (+ nested applications).
 - Facilities: `/api/facilities` (+ near/applications).
 - Planning controls: `/api/planning-controls`, `/api/planning-controls/at-point`, taxonomies for layers/codes.
+- Contacts: `/api/contacts`, `/api/applications/{id}/contacts` (contribute via POST).
+- Favourites: CRUD `/api/user/favourites`.
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 

@@ -4,17 +4,26 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouse\ListApplicationsRequest;
+use App\Http\Requests\Warehouse\StoreApplicationContactRequest;
+use App\Http\Resources\ApplicationContactResource;
 use App\Http\Resources\ApplicationResource;
 use App\Http\Resources\LegislationResource;
 use App\Models\Application;
+use App\Models\ApplicationContact;
+use App\Models\Contact;
+use App\Models\User;
+use App\Support\UserActivityLogger;
 use App\Support\Warehouse\ApplicationFilter;
 use App\Support\Warehouse\ApplicationQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ApplicationController extends Controller
 {
     public function __construct(
         private readonly ApplicationQuery $applicationQuery = new ApplicationQuery,
+        private readonly UserActivityLogger $activityLogger = new UserActivityLogger,
     ) {}
 
     public function index(ListApplicationsRequest $request)
@@ -45,6 +54,8 @@ class ApplicationController extends Controller
             'applicationTypes.applicationClass',
             'developmentTypes.developmentClass',
             'decisionTypes.decisionClass',
+            'applicationContacts' => fn ($q) => $q->where('status', 'published')->orderByDesc('is_primary')->orderBy('role'),
+            'applicationContacts.contact',
         ]);
 
         return new ApplicationResource($application);
@@ -55,6 +66,127 @@ class ApplicationController extends Controller
         return LegislationResource::collection(
             $application->legislations()->orderBy('name')->get(),
         );
+    }
+
+    /**
+     * Contacts linked to an application (published by default).
+     *
+     * Query: `?include_pending=1` also returns the caller's pending contributions.
+     */
+    public function contacts(Request $request, Application $application): AnonymousResourceCollection
+    {
+        $query = ApplicationContact::query()
+            ->with('contact')
+            ->where('application_id', $application->id)
+            ->orderByDesc('is_primary')
+            ->orderBy('role');
+
+        if ($request->boolean('include_pending') && $request->user()) {
+            $userId = (int) $request->user()->id;
+            $query->where(function ($q) use ($userId): void {
+                $q->where('status', 'published')
+                    ->orWhere(function ($pending) use ($userId): void {
+                        $pending->where('status', 'pending')
+                            ->where('contributed_by_user_id', $userId);
+                    });
+            });
+        } else {
+            $query->where('status', 'published');
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', (string) $request->input('role'));
+        }
+
+        return ApplicationContactResource::collection($query->get());
+    }
+
+    /**
+     * Contribute a contact on an application (stored as pending until moderated).
+     */
+    public function storeContact(StoreApplicationContactRequest $request, Application $application): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $data = $request->validated();
+
+        if (! empty($data['contact_id'])) {
+            $contact = Contact::query()->find((int) $data['contact_id']);
+            if ($contact === null) {
+                return response()->json(['message' => 'contact_not_found'], 422);
+            }
+        } else {
+            $contact = $this->findOrCreateContact($data);
+        }
+
+        $existing = ApplicationContact::query()
+            ->where('application_id', $application->id)
+            ->where('contact_id', $contact->id)
+            ->where('role', $data['role'])
+            ->first();
+
+        if ($existing !== null) {
+            return response()->json([
+                'message' => 'application_contact_exists',
+                'data' => new ApplicationContactResource($existing->load('contact')),
+            ], 200);
+        }
+
+        $link = ApplicationContact::query()->create([
+            'application_id' => $application->id,
+            'contact_id' => $contact->id,
+            'role' => $data['role'],
+            'is_primary' => (bool) ($data['is_primary'] ?? false),
+            'source' => 'user',
+            'status' => 'pending',
+            'contributed_by_user_id' => $user->id,
+            'email_override' => $data['email_override'] ?? null,
+            'phone_override' => $data['phone_override'] ?? null,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $this->activityLogger->log(
+            $user,
+            UserActivityLogger::CONTACT_CONTRIBUTED,
+            [
+                'application_id' => $application->id,
+                'contact_id' => $contact->id,
+                'role' => $data['role'],
+            ],
+            $link,
+        );
+
+        return response()->json([
+            'message' => 'application_contact_created',
+            'data' => new ApplicationContactResource($link->load('contact')),
+        ], 201);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function findOrCreateContact(array $data): Contact
+    {
+        $email = isset($data['email']) && is_string($data['email']) && $data['email'] !== ''
+            ? strtolower(trim($data['email']))
+            : null;
+
+        if ($email !== null) {
+            $existing = Contact::query()->whereRaw('lower(email) = ?', [$email])->first();
+            if ($existing !== null) {
+                return $existing;
+            }
+        }
+
+        return Contact::query()->create([
+            'type' => $data['type'] ?? 'organisation',
+            'name' => $data['name'],
+            'email' => $email,
+            'phone' => $data['phone'] ?? null,
+            'mobile' => $data['mobile'] ?? null,
+            'website' => $data['website'] ?? null,
+            'abn' => $data['abn'] ?? null,
+        ]);
     }
 
     /**

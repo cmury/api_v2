@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\FacilityController;
 use App\Http\Controllers\Api\ForecastController;
 use App\Http\Controllers\Api\InsightsController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TaxonomyController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserFavouriteController;
 use App\Http\Controllers\Api\UserSearchController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,16 +53,27 @@ Route::prefix('auth')->group(function () {
 
 // User routes
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+    // User profile
     Route::get('/profile', [UserController::class, 'show']);
     Route::put('/profile', [UserController::class, 'update']);
+    // User settings
     Route::get('/settings', [UserController::class, 'showSettings']);
     Route::put('/settings', [UserController::class, 'updateSettings']);
+    // User log
     Route::get('/log', [UserController::class, 'log']);
+    // User searches
     Route::get('/searches', [UserSearchController::class, 'index']);
     Route::post('/searches', [UserSearchController::class, 'store']);
     Route::get('/searches/{search}', [UserSearchController::class, 'show']);
     Route::put('/searches/{search}', [UserSearchController::class, 'update']);
     Route::delete('/searches/{search}', [UserSearchController::class, 'destroy']);
+    // User favourites
+    Route::get('/favourites', [UserFavouriteController::class, 'index']);
+    Route::post('/favourites', [UserFavouriteController::class, 'store']);
+    Route::get('/favourites/{favourite}', [UserFavouriteController::class, 'show']);
+    Route::put('/favourites/{favourite}', [UserFavouriteController::class, 'update']);
+    Route::delete('/favourites/{favourite}', [UserFavouriteController::class, 'destroy']);
+    // Delete user account
     Route::delete('/', [UserController::class, 'destroy']);
 });
 
@@ -85,7 +98,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Application endpoints
     Route::get('/applications', [ApplicationController::class, 'index']);
     Route::get('/applications/{application}/legislation', [ApplicationController::class, 'legislations']);
+    Route::get('/applications/{application}/contacts', [ApplicationController::class, 'contacts']);
+    Route::post('/applications/{application}/contacts', [ApplicationController::class, 'storeContact']);
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
+
+    // Contacts (people / organisations on applications)
+    Route::get('/contacts', [ContactController::class, 'index']);
+    Route::get('/contacts/{contact}/applications', [ContactController::class, 'applications']);
+    Route::get('/contacts/{contact}', [ContactController::class, 'show']);
 
     // Legislation endpoints
     Route::get('/legislation', [LegislationController::class, 'index']);

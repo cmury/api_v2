@@ -32,10 +32,10 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="INSIGHTS_ENABLED" value="true"/>
-        <env name="AI_DEFAULT_PROVIDER" value="openai"/>
-        <env name="INSIGHTS_PROVIDER" value="openai"/>
-        <env name="INSIGHTS_MODEL" value="gpt-4.1-mini"/>
-        <env name="OPENAI_API_KEY" value="test-key"/>
+        <env name="INSIGHTS_ENABLED" value="true" force="true"/>
+        <env name="AI_DEFAULT_PROVIDER" value="openai" force="true"/>
+        <env name="INSIGHTS_PROVIDER" value="openai" force="true"/>
+        <env name="INSIGHTS_MODEL" value="gpt-4.1-mini" force="true"/>
+        <env name="OPENAI_API_KEY" value="test-key" force="true"/>
     </php>
 </phpunit>

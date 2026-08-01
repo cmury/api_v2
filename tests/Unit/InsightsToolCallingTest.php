@@ -14,6 +14,7 @@ use App\Ai\Tools\RunWarehouseSql;
 use App\Ai\Tools\SearchApplications;
 use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
+use App\Ai\Tools\SearchContacts;
 use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
 use App\Ai\Tools\SearchPlanningControls;
@@ -51,6 +52,7 @@ class InsightsToolCallingTest extends TestCase
             'search_applications_near_facility',
             'search_planning_controls',
             'get_planning_at_point',
+            'search_contacts',
             'get_stats',
             'get_forecast',
             'list_taxonomies',
@@ -126,6 +128,7 @@ class InsightsToolCallingTest extends TestCase
             SearchApplicationsNearFacility::class,
             SearchPlanningControls::class,
             GetPlanningAtPoint::class,
+            SearchContacts::class,
             GetStats::class,
             GetForecast::class,
             ListTaxonomies::class,

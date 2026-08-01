@@ -3,7 +3,7 @@
     "info": {
         "title": "IMBY API",
         "version": "0.1.0",
-        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Volume forecast | `GET /forecasts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities`, `/planning-controls` |\n| Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |\n| Zoning / controls at a point | `GET /planning-controls/at-point?lat=&lng=` |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.\n\n**Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.\n\n**Planning controls** (`planning_controls`) expose NSW EPI layers (zoning first; FSR/height/heritage as loaded). Use `/planning-controls/at-point` for site lookups and `/taxonomies/planning-layers` / `planning-codes` for vocabulary.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
+        "description": "IMBY product JSON API for planning warehouse data (`imby_data_v2`).\n\n**Auth:** Sanctum bearer tokens from `POST /auth/login` or `/auth/register`. Pass `Authorization: Bearer <token>`.\n\n**When to call which endpoint**\n\n| Intent | Endpoint |\n|--------|----------|\n| Single number / aggregate | `GET /stats` |\n| Plot (Chart.js-ready) | `GET /charts` |\n| Volume forecast | `GET /forecasts` |\n| Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities`, `/planning-controls` |\n| Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |\n| Zoning / controls at a point | `GET /planning-controls/at-point?lat=&lng=` |\n| Contacts on a DA | `GET /applications/{id}/contacts`, `GET /contacts` |\n| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}`, `/contacts/{id}` |\n| Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |\n| Map pins | `GET /map/markers` |\n\n**Charts** always return `labels` + `values` (plus `series` for calendar / timeseries). Formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).\n\n**Shared filters** (applications, map, stats, charts): `application_class_ids`, `development_class_ids`, `decision_class_ids`, `application_type_ids`, `development_type_ids`, `decision_type_ids`, `legislation_ids`, `state`, `authority_id`, `location_id`, `source`, date / cost / bounds.\n\n**Facility near queries** resolve geometry from `facilities` (transport + education POIs), then filter applications within `radius` metres using class/type taxonomy ids.\n\n**Planning controls** (`planning_controls`) expose NSW EPI layers (zoning first; FSR/height/heritage as loaded). Use `/planning-controls/at-point` for site lookups and `/taxonomies/planning-layers` / `planning-codes` for vocabulary.\n\nSchema is owned by **agents_v2** migrations \u2014 this service exposes HTTP only."
     },
     "servers": [
         {
@@ -494,6 +494,171 @@
                 }
             }
         },
+        "/applications/{application}/contacts": {
+            "get": {
+                "operationId": "application.contacts",
+                "description": "Query: `?include_pending=1` also returns the caller's pending contributions.",
+                "summary": "Contacts linked to an application (published by default)",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "application",
+                        "in": "path",
+                        "required": true,
+                        "description": "The application ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ApplicationContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/ApplicationContactResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "contact"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "application.storeContact",
+                "summary": "Contribute a contact on an application (stored as pending until moderated)",
+                "tags": [
+                    "Application"
+                ],
+                "parameters": [
+                    {
+                        "name": "application",
+                        "in": "path",
+                        "required": true,
+                        "description": "The application ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreApplicationContactRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "application_contact_created"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ApplicationContactResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "contact"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "application_contact_exists"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/ApplicationContactResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "contact"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/applications/{application}": {
             "get": {
                 "operationId": "application.show",
@@ -532,7 +697,8 @@
                                                         "application_types",
                                                         "development_types",
                                                         "decision_types",
-                                                        "legislation"
+                                                        "legislation",
+                                                        "contacts"
                                                     ]
                                                 }
                                             ]
@@ -2094,6 +2260,383 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/components/schemas/AuthorityResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/contacts": {
+            "get": {
+                "operationId": "contact.index",
+                "description": "Example: `GET /contacts?search=Hassell&type=organisation&role=architect`",
+                "summary": "Search people / organisations linked to applications",
+                "tags": [
+                    "Contact"
+                ],
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "person",
+                                "organisation",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "email",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "abn",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 14
+                        }
+                    },
+                    {
+                        "name": "role",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "architect",
+                                "planner",
+                                "builder",
+                                "applicant",
+                                "developer",
+                                "certifier",
+                                "other",
+                                null
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 64
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated set of `ContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ContactResource"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "prev": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "next": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last",
+                                                "prev",
+                                                "next"
+                                            ]
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "from": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "minimum": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "minimum": 1
+                                                },
+                                                "links": {
+                                                    "type": "array",
+                                                    "description": "Generated paginator links.",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "url": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            "label": {
+                                                                "type": "string"
+                                                            },
+                                                            "active": {
+                                                                "type": "boolean"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "url",
+                                                            "label",
+                                                            "active"
+                                                        ]
+                                                    }
+                                                },
+                                                "path": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ],
+                                                    "description": "Base path for paginator generated URLs."
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "description": "Number of items shown per page.",
+                                                    "minimum": 0
+                                                },
+                                                "to": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ],
+                                                    "description": "Number of the last item in the slice.",
+                                                    "minimum": 1
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "description": "Total number of items being paginated.",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "current_page",
+                                                "from",
+                                                "last_page",
+                                                "links",
+                                                "path",
+                                                "per_page",
+                                                "to",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "links",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/contacts/{contact}/applications": {
+            "get": {
+                "operationId": "contact.applications",
+                "summary": "Published application links for a contact",
+                "tags": [
+                    "Contact"
+                ],
+                "parameters": [
+                    {
+                        "name": "contact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The contact ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ApplicationContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/ApplicationContactResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "application"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/contacts/{contact}": {
+            "get": {
+                "operationId": "contact.show",
+                "tags": [
+                    "Contact"
+                ],
+                "parameters": [
+                    {
+                        "name": "contact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The contact ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ContactResource"
                                         }
                                     },
                                     "required": [
@@ -8475,6 +9018,253 @@
                 }
             }
         },
+        "/user/favourites": {
+            "get": {
+                "operationId": "userFavourite.index",
+                "tags": [
+                    "UserFavourite"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `UserFavouriteResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "allOf": [
+                                                    {
+                                                        "$ref": "#/components/schemas/UserFavouriteResource"
+                                                    },
+                                                    {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "application"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "userFavourite.store",
+                "tags": [
+                    "UserFavourite"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreUserFavouriteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/user/favourites/{favourite}": {
+            "get": {
+                "operationId": "userFavourite.show",
+                "tags": [
+                    "UserFavourite"
+                ],
+                "parameters": [
+                    {
+                        "name": "favourite",
+                        "in": "path",
+                        "required": true,
+                        "description": "The favourite ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`UserFavouriteResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UserFavouriteResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "application"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "userFavourite.update",
+                "tags": [
+                    "UserFavourite"
+                ],
+                "parameters": [
+                    {
+                        "name": "favourite",
+                        "in": "path",
+                        "required": true,
+                        "description": "The favourite ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateUserFavouriteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "favourite_updated"
+                                        },
+                                        "data": {
+                                            "allOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/UserFavouriteResource"
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "application"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "userFavourite.destroy",
+                "tags": [
+                    "UserFavourite"
+                ],
+                "parameters": [
+                    {
+                        "name": "favourite",
+                        "in": "path",
+                        "required": true,
+                        "description": "The favourite ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "const": "favourite_deleted"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/user/searches": {
             "get": {
                 "operationId": "userSearch.index",
@@ -8715,6 +9505,95 @@
             }
         },
         "schemas": {
+            "ApplicationContactResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "application_id": {
+                        "type": "integer"
+                    },
+                    "contact_id": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "is_primary": {
+                        "type": "boolean"
+                    },
+                    "source": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "email_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "contributed_by_user_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "contact": {
+                        "$ref": "#/components/schemas/ContactResource"
+                    },
+                    "application": {
+                        "$ref": "#/components/schemas/ApplicationResource"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "application_id",
+                    "contact_id",
+                    "role",
+                    "is_primary",
+                    "source",
+                    "status",
+                    "email_override",
+                    "phone_override",
+                    "notes",
+                    "contributed_by_user_id",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ApplicationContactResource"
+            },
             "ApplicationResource": {
                 "type": "object",
                 "properties": {
@@ -8964,6 +9843,12 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/LegislationResource"
+                        }
+                    },
+                    "contacts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ApplicationContactResource"
                         }
                     },
                     "created_at": {
@@ -9599,6 +10484,87 @@
                 ],
                 "title": "ChatThreadResource"
             },
+            "ContactResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "mobile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "abn": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "applications_count": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "name",
+                    "email",
+                    "phone",
+                    "mobile",
+                    "website",
+                    "abn",
+                    "notes",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ContactResource"
+            },
             "FacilityResource": {
                 "type": "object",
                 "properties": {
@@ -10116,6 +11082,133 @@
                 ],
                 "title": "ResetPasswordRequest"
             },
+            "StoreApplicationContactRequest": {
+                "type": "object",
+                "properties": {
+                    "contact_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "person",
+                            "organisation",
+                            null
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 32
+                    },
+                    "mobile": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 32
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "abn": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 14
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "architect",
+                            "planner",
+                            "builder",
+                            "applicant",
+                            "developer",
+                            "certifier",
+                            "other"
+                        ]
+                    },
+                    "is_primary": {
+                        "type": "boolean"
+                    },
+                    "email_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "phone_override": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 32
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "role"
+                ],
+                "title": "StoreApplicationContactRequest"
+            },
+            "StoreUserFavouriteRequest": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "application_id"
+                ],
+                "title": "StoreUserFavouriteRequest"
+            },
             "StoreUserSearchRequest": {
                 "type": "object",
                 "properties": {
@@ -10251,6 +11344,19 @@
                 },
                 "title": "UpdateSettingsRequest"
             },
+            "UpdateUserFavouriteRequest": {
+                "type": "object",
+                "properties": {
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    }
+                },
+                "title": "UpdateUserFavouriteRequest"
+            },
             "UpdateUserSearchRequest": {
                 "type": "object",
                 "properties": {
@@ -10294,6 +11400,58 @@
                     "notify"
                 ],
                 "title": "UpdateUserSearchRequest"
+            },
+            "UserFavouriteResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "application_id": {
+                        "type": "integer"
+                    },
+                    "notes": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "application": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ApplicationResource"
+                            },
+                            {
+                                "type": "object",
+                                "required": [
+                                    "authority"
+                                ]
+                            }
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "application_id",
+                    "notes",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "UserFavouriteResource"
             },
             "UserLogResource": {
                 "type": "object",

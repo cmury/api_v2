@@ -13,6 +13,7 @@ use App\Ai\Tools\RunWarehouseSql;
 use App\Ai\Tools\SearchApplications;
 use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
+use App\Ai\Tools\SearchContacts;
 use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
 use App\Ai\Tools\SearchPlanningControls;
@@ -79,6 +80,7 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
         - Station / school / facility lookup → search_facilities
         - Zoning / FSR / height at a site → get_planning_at_point (lat/lng)
         - Browse planning controls by LGA / code → search_planning_controls
+        - Architect / builder / applicant on a DA → search_contacts (or get_application)
         - OpenAPI grounding → lookup_api_docs
         - Novel SQL → run_warehouse_sql
 
@@ -120,6 +122,7 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
             new SearchApplicationsNearFacility,
             new SearchPlanningControls,
             new GetPlanningAtPoint,
+            new SearchContacts,
             new GetStats,
             new GetForecast,
             new ListTaxonomies,

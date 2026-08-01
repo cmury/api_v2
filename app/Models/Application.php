@@ -6,6 +6,7 @@ use App\Support\DataDatabase;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Application extends Model
 {
@@ -61,5 +62,20 @@ class Application extends Model
     public function decisionTypes(): BelongsToMany
     {
         return $this->belongsToMany(DecisionType::class, 'application_decision_types');
+    }
+
+    public function applicationContacts(): HasMany
+    {
+        return $this->hasMany(ApplicationContact::class);
+    }
+
+    public function contacts(): BelongsToMany
+    {
+        return $this->belongsToMany(Contact::class, 'application_contacts')
+            ->withPivot([
+                'id', 'role', 'is_primary', 'source', 'status',
+                'contributed_by_user_id', 'email_override', 'phone_override', 'notes',
+            ])
+            ->withTimestamps();
     }
 }

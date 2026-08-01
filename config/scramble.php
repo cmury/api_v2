@@ -66,7 +66,8 @@ IMBY product JSON API for planning warehouse data (`imby_data_v2`).
 | Browse rows | `GET /applications`, `/locations`, `/authorities`, `/facilities`, `/planning-controls` |
 | Near a facility | `GET /facilities/applications-near` (or `/facilities/{id}/applications`) |
 | Zoning / controls at a point | `GET /planning-controls/at-point?lat=&lng=` |
-| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}` |
+| Contacts on a DA | `GET /applications/{id}/contacts`, `GET /contacts` |
+| Entity detail | `GET /applications/{id}`, `/authorities/{id}`, `/locations/{id}`, `/legislation/{id}`, `/facilities/{id}`, `/planning-controls/{id}`, `/contacts/{id}` |
 | Filter vocabulary | `GET /taxonomies/*`, `GET /legislation` |
 | Map pins | `GET /map/markers` |
 

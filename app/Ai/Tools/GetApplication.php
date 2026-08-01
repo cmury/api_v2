@@ -23,7 +23,7 @@ class GetApplication implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Fetch one application by id with authority, locations, and taxonomy labels. '
+        return 'Fetch one application by id with authority, locations, published contacts, and taxonomy labels. '
             .'Resolve the id via search_applications when the user only has an authority_no or description.';
     }
 
@@ -41,6 +41,7 @@ class GetApplication implements Tool
                 'applicationTypes:id,name,display_name',
                 'developmentTypes:id,name,display_name',
                 'decisionTypes:id,name,display_name',
+                'applicationContacts' => fn ($q) => $q->where('status', 'published')->with('contact'),
             ])
             ->find($id);
 
@@ -65,6 +66,14 @@ class GetApplication implements Tool
                 'state' => $l->state,
                 'post_code' => $l->post_code,
                 'formatted_address' => $l->formatted_address,
+            ])->all(),
+            'contacts' => $application->applicationContacts->map(fn ($link) => [
+                'role' => $link->role,
+                'is_primary' => $link->is_primary,
+                'name' => $link->contact?->name,
+                'type' => $link->contact?->type,
+                'email' => $link->email_override ?: $link->contact?->email,
+                'phone' => $link->phone_override ?: $link->contact?->phone,
             ])->all(),
             'application_types' => $application->applicationTypes->pluck('name')->all(),
             'development_types' => $application->developmentTypes->pluck('name')->all(),
