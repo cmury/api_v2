@@ -40,7 +40,12 @@ final class GeoJson
         } elseif (method_exists($row, 'getAttributes')) {
             $data = $row->getAttributes();
             // selectRaw aliases (lat/lng) are present as dynamic props on the model.
-            foreach (['lat', 'lng', 'formatted_address', 'submitted', 'application_count', 'id', 'location_id', 'location'] as $key) {
+            foreach ([
+                'lat', 'lng', 'formatted_address', 'submitted', 'application_count',
+                'id', 'location_id', 'location', 'portal_no', 'authority_no', 'type',
+                'description', 'decision', 'estimated_cost', 'development_classes',
+                'decision_classes',
+            ] as $key) {
                 if (! array_key_exists($key, $data) && isset($row->{$key})) {
                     $data[$key] = $row->{$key};
                 }
@@ -60,6 +65,9 @@ final class GeoJson
             ? self::stripCountry((string) $data['formatted_address'])
             : (isset($data['location']) ? (string) $data['location'] : null);
 
+        $applicationId = isset($data['id']) ? (int) $data['id'] : null;
+        $locationId = isset($data['location_id']) ? (int) $data['location_id'] : null;
+
         return [
             'type' => 'Feature',
             'geometry' => [
@@ -67,14 +75,71 @@ final class GeoJson
                 'coordinates' => [$lng, $lat],
             ],
             'properties' => [
-                'location_id' => isset($data['id']) ? (int) $data['id'] : (isset($data['location_id']) ? (int) $data['location_id'] : null),
+                'id' => $applicationId,
+                'location_id' => $locationId,
                 'location' => $address,
                 'submitted' => $data['submitted'] ?? null,
-                'application_count' => isset($data['application_count'])
-                    ? (int) $data['application_count']
-                    : null,
+                'type' => $data['type'] ?? null,
+                'portal_no' => $data['portal_no'] ?? null,
+                'authority_no' => $data['authority_no'] ?? null,
+                'description' => $data['description'] ?? null,
+                'decision' => $data['decision'] ?? null,
+                'estimated_cost' => $data['estimated_cost'] ?? null,
+                'development_classes' => self::normalizeDevelopmentClasses($data['development_classes'] ?? []),
+                'decision_classes' => self::normalizeDecisionClasses($data['decision_classes'] ?? []),
             ],
         ];
+    }
+
+    /**
+     * @param  mixed  $classes
+     * @return list<array{id: ?int, development_class: mixed, name: mixed, description: mixed, icon: mixed, icon_priority: int}>
+     */
+    private static function normalizeDevelopmentClasses(mixed $classes): array
+    {
+        if (! is_array($classes)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static function (mixed $class): array {
+                $item = is_array($class) ? $class : (array) $class;
+
+                return [
+                    'id' => isset($item['id']) ? (int) $item['id'] : null,
+                    'development_class' => $item['development_class'] ?? null,
+                    'name' => $item['name'] ?? null,
+                    'description' => $item['description'] ?? null,
+                    'icon' => $item['icon'] ?? null,
+                    'icon_priority' => (int) ($item['icon_priority'] ?? 0),
+                ];
+            },
+            $classes,
+        ));
+    }
+
+    /**
+     * @param  mixed  $classes
+     * @return list<array{id: ?int, name: mixed, description: mixed}>
+     */
+    private static function normalizeDecisionClasses(mixed $classes): array
+    {
+        if (! is_array($classes)) {
+            return [];
+        }
+
+        return array_values(array_map(
+            static function (mixed $class): array {
+                $item = is_array($class) ? $class : (array) $class;
+
+                return [
+                    'id' => isset($item['id']) ? (int) $item['id'] : null,
+                    'name' => $item['name'] ?? null,
+                    'description' => $item['description'] ?? null,
+                ];
+            },
+            $classes,
+        ));
     }
 
     public static function stripCountry(?string $address): ?string

@@ -22,10 +22,16 @@ final class SearchNotifications
     public function forUser(User $user): array
     {
         $frequency = $user->preferences?->new_application_email_frequency ?? 'daily';
+
+        if ($frequency === 'never') {
+            return ['type' => 'FeatureCollection', 'features' => []];
+        }
+
         $days = match ($frequency) {
             'weekly' => 7,
             'fortnightly' => 15,
             'monthly' => 30,
+            'immediately', 'daily' => 1,
             default => 1,
         };
 
@@ -38,7 +44,7 @@ final class SearchNotifications
             ->where('notify', true)
             ->get();
 
-        $byLocation = collect();
+        $byApplication = collect();
 
         foreach ($searches as $search) {
             $filterInput = is_array($search->filter) ? $search->filter : [];
@@ -52,10 +58,10 @@ final class SearchNotifications
             $rows = $this->mapMarkerQuery->search($filter);
 
             foreach ($rows as $row) {
-                $byLocation[(int) $row->id] = $row;
+                $byApplication[(int) $row->id] = $row;
             }
         }
 
-        return GeoJson::featureCollection($byLocation->values());
+        return GeoJson::featureCollection($byApplication->values());
     }
 }

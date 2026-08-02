@@ -9,13 +9,20 @@ return [
     */
 
     'email_frequencies' => [
+        'immediately',
         'daily',
         'weekly',
         'fortnightly',
         'monthly',
+        'never',
     ],
 
+    // UI base-layer names plus legacy Google-style values.
     'map_types' => [
+        'Light',
+        'Street',
+        'Dark',
+        'Satellite',
         'ROADMAP',
         'SATELLITE',
         'HYBRID',

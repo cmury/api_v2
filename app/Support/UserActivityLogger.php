@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\User;
 use App\Models\UserLog;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 final class UserActivityLogger
 {
@@ -38,6 +39,9 @@ final class UserActivityLogger
 
     public const APPLICATION_UNCLAIMED = 'application_unclaimed';
 
+    /** Viewed an application detail (legacy action name: application). */
+    public const APPLICATION_VIEWED = 'application';
+
     public const PORTFOLIO_ITEM_ADDED = 'portfolio_item_added';
 
     public const PORTFOLIO_ITEM_REMOVED = 'portfolio_item_removed';
@@ -58,5 +62,52 @@ final class UserActivityLogger
             'actionable_type' => $actionable?->getMorphClass(),
             'actionable_id' => $actionable?->getKey(),
         ]);
+    }
+
+    /**
+     * Log once per user/action/actionable within a short window.
+     * Avoids duplicate rows from React Strict Mode remounts and rapid refetches.
+     *
+     * @param  array<string, mixed>|null  $payload
+     */
+    public function logOnce(
+        User $user,
+        string $action,
+        ?array $payload = null,
+        ?Model $actionable = null,
+        int $withinSeconds = 60,
+    ): ?UserLog {
+        $withinSeconds = max(1, $withinSeconds);
+        $cacheKey = sprintf(
+            'user-log-once:%d:%s:%s:%s',
+            $user->id,
+            $action,
+            $actionable?->getMorphClass() ?? '-',
+            (string) ($actionable?->getKey() ?? '-'),
+        );
+
+        // Atomic gate so concurrent duplicate requests (e.g. Strict Mode) only log once.
+        if (! Cache::add($cacheKey, true, $withinSeconds)) {
+            return null;
+        }
+
+        $query = UserLog::query()
+            ->where('user_id', $user->id)
+            ->where('action', $action)
+            ->where('created_at', '>=', now()->subSeconds($withinSeconds));
+
+        if ($actionable !== null) {
+            $query
+                ->where('actionable_type', $actionable->getMorphClass())
+                ->where('actionable_id', $actionable->getKey());
+        } else {
+            $query->whereNull('actionable_type')->whereNull('actionable_id');
+        }
+
+        if ($query->exists()) {
+            return null;
+        }
+
+        return $this->log($user, $action, $payload, $actionable);
     }
 }

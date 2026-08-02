@@ -18,6 +18,7 @@ use App\Support\Warehouse\ApplicationQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class ApplicationController extends Controller
 {
@@ -45,7 +46,7 @@ class ApplicationController extends Controller
         return ApplicationResource::collection($query->paginate($perPage));
     }
 
-    public function show(Application $application): ApplicationResource
+    public function show(Request $request, Application $application): ApplicationResource
     {
         $application->load([
             'authority',
@@ -57,6 +58,32 @@ class ApplicationController extends Controller
             'applicationContacts' => fn ($q) => $q->where('status', 'published')->orderByDesc('is_primary')->orderBy('role'),
             'applicationContacts.contact',
         ]);
+
+        foreach ($application->locations as $location) {
+            $coords = DB::connection($location->getConnectionName())
+                ->table('locations')
+                ->where('id', $location->id)
+                ->whereNotNull('geom')
+                ->selectRaw('ST_Y(geom::geometry) AS lat')
+                ->selectRaw('ST_X(geom::geometry) AS lng')
+                ->first();
+
+            if ($coords !== null) {
+                $location->setAttribute('lat', (float) $coords->lat);
+                $location->setAttribute('lng', (float) $coords->lng);
+            }
+        }
+
+        /** @var User|null $user */
+        $user = $request->user();
+        if ($user instanceof User) {
+            $this->activityLogger->logOnce(
+                $user,
+                UserActivityLogger::APPLICATION_VIEWED,
+                ['application_id' => $application->id],
+                $application,
+            );
+        }
 
         return new ApplicationResource($application);
     }

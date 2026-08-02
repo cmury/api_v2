@@ -19,7 +19,7 @@ class UpdateSettingsRequest extends FormRequest
     {
         return [
             'map_type' => ['sometimes', 'nullable', 'string', Rule::in(config('imby.map_types'))],
-            'date_range' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:120'],
+            'date_range' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:365'],
             'new_application_email_frequency' => [
                 'sometimes',
                 'nullable',

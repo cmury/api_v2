@@ -19,7 +19,7 @@ class MapController extends Controller
     ) {}
 
     /**
-     * Public map markers (GeoJSON FeatureCollection).
+     * Public map markers (GeoJSON FeatureCollection) — one feature per application.
      * Accepts the old `?query=<json>` envelope or flat filter params.
      */
     public function markers(MapMarkersRequest $request): JsonResponse

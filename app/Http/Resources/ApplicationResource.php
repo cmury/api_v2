@@ -38,7 +38,19 @@ class ApplicationResource extends JsonResource
                 'name' => $t->name,
                 'display_name' => $t->display_name,
                 'class' => $t->relationLoaded('applicationClass') && $t->applicationClass
-                    ? ['id' => $t->applicationClass->id, 'name' => $t->applicationClass->name]
+                    ? [
+                        'id' => $t->applicationClass->id,
+                        'name' => $t->applicationClass->name,
+                        'display_name' => $t->applicationClass->display_name,
+                    ]
+                    : null,
+                // Legacy frontend alias
+                'application_class' => $t->relationLoaded('applicationClass') && $t->applicationClass
+                    ? [
+                        'id' => $t->applicationClass->id,
+                        'name' => $t->applicationClass->name,
+                        'display_name' => $t->applicationClass->display_name,
+                    ]
                     : null,
             ])),
             'development_types' => $this->whenLoaded('developmentTypes', fn () => $this->developmentTypes->map(fn ($t) => [
@@ -46,7 +58,23 @@ class ApplicationResource extends JsonResource
                 'name' => $t->name,
                 'display_name' => $t->display_name,
                 'class' => $t->relationLoaded('developmentClass') && $t->developmentClass
-                    ? ['id' => $t->developmentClass->id, 'name' => $t->developmentClass->name]
+                    ? [
+                        'id' => $t->developmentClass->id,
+                        'name' => $t->developmentClass->name,
+                        'display_name' => $t->developmentClass->display_name,
+                        'development_class' => $t->developmentClass->development_class,
+                        'description' => $t->developmentClass->description,
+                    ]
+                    : null,
+                // Legacy frontend alias
+                'development_class' => $t->relationLoaded('developmentClass') && $t->developmentClass
+                    ? [
+                        'id' => $t->developmentClass->id,
+                        'name' => $t->developmentClass->name,
+                        'display_name' => $t->developmentClass->display_name,
+                        'development_class' => $t->developmentClass->development_class,
+                        'description' => $t->developmentClass->description,
+                    ]
                     : null,
             ])),
             'decision_types' => $this->whenLoaded('decisionTypes', fn () => $this->decisionTypes->map(fn ($t) => [
@@ -54,7 +82,21 @@ class ApplicationResource extends JsonResource
                 'name' => $t->name,
                 'display_name' => $t->display_name,
                 'class' => $t->relationLoaded('decisionClass') && $t->decisionClass
-                    ? ['id' => $t->decisionClass->id, 'name' => $t->decisionClass->name]
+                    ? [
+                        'id' => $t->decisionClass->id,
+                        'name' => $t->decisionClass->name,
+                        'display_name' => $t->decisionClass->display_name,
+                        'description' => $t->decisionClass->description,
+                    ]
+                    : null,
+                // Legacy frontend alias
+                'decision_class' => $t->relationLoaded('decisionClass') && $t->decisionClass
+                    ? [
+                        'id' => $t->decisionClass->id,
+                        'name' => $t->decisionClass->name,
+                        'display_name' => $t->decisionClass->display_name,
+                        'description' => $t->decisionClass->description,
+                    ]
                     : null,
             ])),
             'legislation' => LegislationResource::collection($this->whenLoaded('legislations')),
