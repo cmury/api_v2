@@ -42,9 +42,21 @@ final class UserActivityLogger
     /** Viewed an application detail (legacy action name: application). */
     public const APPLICATION_VIEWED = 'application';
 
+    public const MAP_CSV_EXPORTED = 'map_csv_exported';
+
     public const PORTFOLIO_ITEM_ADDED = 'portfolio_item_added';
 
     public const PORTFOLIO_ITEM_REMOVED = 'portfolio_item_removed';
+
+    public const BILLING_CHECKOUT_STARTED = 'billing_checkout_started';
+
+    public const BILLING_PORTAL_OPENED = 'billing_portal_opened';
+
+    public const BILLING_PLAN_CHANGED = 'plan_changed';
+
+    public const BILLING_CANCELED = 'billing_canceled';
+
+    public const BILLING_RESUMED = 'billing_resumed';
 
     /**
      * @param  array<string, mixed>|null  $payload

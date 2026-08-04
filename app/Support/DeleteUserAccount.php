@@ -86,10 +86,32 @@ final class DeleteUserAccount
             }
 
             if (Schema::connection($connection)->hasTable('users_subscriptions')) {
+                if (Schema::connection($connection)->hasTable('users_subscription_items')) {
+                    $subscriptionIds = DB::connection($connection)
+                        ->table('users_subscriptions')
+                        ->where('user_id', $userId)
+                        ->pluck('id');
+
+                    if ($subscriptionIds->isNotEmpty()) {
+                        DB::connection($connection)
+                            ->table('users_subscription_items')
+                            ->whereIn('subscription_id', $subscriptionIds)
+                            ->delete();
+                    }
+                }
+
                 DB::connection($connection)
                     ->table('users_subscriptions')
                     ->where('user_id', $userId)
                     ->delete();
+            }
+
+            if ($user->hasStripeId()) {
+                try {
+                    $user->stripe()->customers->delete($user->stripe_id);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
 
             PersonalAccessToken::query()

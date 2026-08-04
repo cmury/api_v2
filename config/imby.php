@@ -122,4 +122,68 @@ return [
     /** Max requests per minute per IP for /geocode*. */
     'geocode_rate_per_minute' => (int) env('GEOCODE_RATE_PER_MINUTE', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Billing (Laravel Cashier + Stripe)
+    |--------------------------------------------------------------------------
+    |
+    | Modern Stripe flow: Checkout Sessions for new subscriptions, Customer
+    | Billing Portal for payment methods / invoices / cancel, webhooks for sync.
+    | Configure Stripe Price IDs (price_…) — not legacy Plan IDs (plan_…).
+    |
+    */
+
+    'billing' => [
+        'trial_days' => (int) env('STRIPE_TRIAL_DAYS', 14),
+        'allow_promotion_codes' => (bool) env('STRIPE_ALLOW_PROMOTION_CODES', true),
+        'collect_address' => (bool) env('STRIPE_COLLECT_ADDRESS', false),
+        'plans' => [
+            'core' => [
+                'price_id' => env('STRIPE_PRICE_CORE'),
+                'name' => 'Core',
+                'description' => 'Essential tools for individuals and small projects.',
+                'amount_display' => env('STRIPE_PRICE_CORE_DISPLAY', '$9 / month'),
+            ],
+            'pro' => [
+                'price_id' => env('STRIPE_PRICE_PRO'),
+                'name' => 'Pro',
+                'description' => 'Professional features with powerful analytics and insights.',
+                'amount_display' => env('STRIPE_PRICE_PRO_DISPLAY', '$19 / month'),
+            ],
+            'business' => [
+                'price_id' => env('STRIPE_PRICE_BUSINESS'),
+                'name' => 'Business',
+                'description' => 'Reporting and export features to support businesses.',
+                'amount_display' => env('STRIPE_PRICE_BUSINESS_DISPLAY', '$49 / month'),
+            ],
+            'enterprise' => [
+                'price_id' => env('STRIPE_PRICE_ENTERPRISE'),
+                'name' => 'Enterprise',
+                'description' => 'Advanced tools, analytics, and support for large teams.',
+                'amount_display' => env('STRIPE_PRICE_ENTERPRISE_DISPLAY', '$99 / month'),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | One-time property reports (public Payment Element)
+    |--------------------------------------------------------------------------
+    */
+
+    'reports' => [
+        'rate_per_minute' => (int) env('REPORTS_RATE_PER_MINUTE', 20),
+        // Optional dedicated webhook secret; falls back to STRIPE_WEBHOOK_SECRET.
+        'webhook_secret' => env('STRIPE_REPORTS_WEBHOOK_SECRET', env('STRIPE_WEBHOOK_SECRET')),
+        'property' => [
+            'amount_cents' => (int) env('STRIPE_PROPERTY_REPORT_AMOUNT_CENTS', 2900),
+            'currency' => env('STRIPE_PROPERTY_REPORT_CURRENCY', env('CASHIER_CURRENCY', 'aud')),
+            'description' => env(
+                'STRIPE_PROPERTY_REPORT_DESCRIPTION',
+                'One-time property planning & development report PDF',
+            ),
+            'pending_ttl_hours' => (int) env('STRIPE_PROPERTY_REPORT_PENDING_TTL_HOURS', 24),
+        ],
+    ],
+
 ];

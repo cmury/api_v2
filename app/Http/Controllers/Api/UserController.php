@@ -41,6 +41,14 @@ class UserController extends Controller
         $user = $request->user();
         $user->update($request->validated());
 
+        if ($user->hasStripeId()) {
+            try {
+                $user->syncStripeCustomerDetails();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $this->activityLogger->log($user, UserActivityLogger::PROFILE_UPDATED);
 
         return response()->json([

@@ -41,6 +41,31 @@ API to work.
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 
+### Billing (Stripe via Laravel Cashier)
+- Off until Stripe env vars + Price IDs are set. Uses **Checkout Sessions**, **Customer
+  Portal**, and Cashier **webhooks** (not legacy Tokens / Plans).
+- Plans catalogue: `GET /api/billing/plans` (public).
+- Auth (Bearer): `GET /api/billing/status`, `POST /api/billing/checkout` → `{ url }`,
+  `POST /api/billing/portal` → `{ url }`, `POST /api/billing/swap`, `POST /api/billing/cancel`,
+  `POST /api/billing/resume`.
+- Webhook: `POST /stripe/webhook` (CSRF-exempt). Configure signing secret as
+  `STRIPE_WEBHOOK_SECRET`. Run `php artisan cashier:webhook` or create the endpoint in
+  Stripe Dashboard pointing at `{APP_URL}/stripe/webhook`.
+- Config: `config/cashier.php`, `config/imby.php` → `billing.plans` (`STRIPE_PRICE_*`).
+- Schema: `users` pm columns + `users_subscriptions` + `users_subscription_items` in
+  **agents_v2** (migrate there after pull).
+
+### Property reports (public one-time Stripe)
+- Guest Payment Element flow (no login): pricing → pay → status → PDF download.
+- `GET /api/reports/property/pricing`, `GET /api/reports/property/example` (sample PDF),
+  `POST /api/reports/property/pay` `{ location_id | lat+lng | address, email? }` →
+  `{ client_secret, download_token }`, `GET /api/reports/property/{token}/status`,
+  `GET /api/reports/property/{token}/download` (402 until paid).
+- Webhook: `POST /api/reports/stripe/webhook` (`payment_intent.succeeded`).
+- PDF via Dompdf from warehouse location + planning controls + DAs (falls back to
+  example dataset when data is missing). Schema: `report_purchases` in agents_v2.
+- Config: `imby.reports.property` (`STRIPE_PROPERTY_REPORT_AMOUNT_CENTS`, etc.).
+
 ### OpenAPI docs
 - Interactive: `GET /docs/api` (Scramble + Scalar; `local`/`testing` only).
 - Spec: `GET /docs/api.json` or `php artisan scramble:export` → `docs/openapi.json`.

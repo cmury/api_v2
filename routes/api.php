@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
+use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactPortfolioController;
 use App\Http\Controllers\Api\FacilityController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MapController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PlanningControlController;
+use App\Http\Controllers\Api\PropertyReportController;
 use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\TaxonomyController;
@@ -37,6 +39,18 @@ Route::middleware('throttle:geocode')->group(function () {
     Route::get('/geocode/reverse', [GeocodeController::class, 'reverse']);
 });
 
+// Public one-time property reports (Stripe Payment Element)
+Route::prefix('reports/property')->group(function () {
+    Route::get('/pricing', [PropertyReportController::class, 'pricing']);
+    Route::get('/example', [PropertyReportController::class, 'example']);
+    Route::post('/pay', [PropertyReportController::class, 'pay'])->middleware('throttle:reports');
+    Route::get('/{token}/status', [PropertyReportController::class, 'status'])
+        ->where('token', '[A-Za-z0-9]{20,64}');
+    Route::get('/{token}/download', [PropertyReportController::class, 'download'])
+        ->where('token', '[A-Za-z0-9]{20,64}');
+});
+Route::post('/reports/stripe/webhook', [PropertyReportController::class, 'webhook']);
+
 // Experimental Insights (tool-calling warehouse Q&A). Gated by INSIGHTS_ENABLED.
 if (config('imby.insights_enabled')) {
     Route::middleware('auth:sanctum')->prefix('insights')->group(function () {
@@ -57,6 +71,20 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/password/change', [AuthController::class, 'changePassword']);
+    });
+});
+
+// Billing (Stripe Checkout + Customer Portal via Cashier)
+Route::prefix('billing')->group(function () {
+    Route::get('/plans', [BillingController::class, 'plans']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/status', [BillingController::class, 'status']);
+        Route::post('/checkout', [BillingController::class, 'checkout']);
+        Route::post('/portal', [BillingController::class, 'portal']);
+        Route::post('/swap', [BillingController::class, 'swap']);
+        Route::post('/cancel', [BillingController::class, 'cancel']);
+        Route::post('/resume', [BillingController::class, 'resume']);
     });
 });
 

@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Cashier\Billable;
+use Laravel\Cashier\Cashier;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use Billable, HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
@@ -27,8 +29,8 @@ class User extends Authenticatable
         'contact_id',
         'is_verified',
         'stripe_id',
-        'card_brand',
-        'card_last_four',
+        'pm_type',
+        'pm_last_four',
         'trial_ends_at',
     ];
 
@@ -68,5 +70,28 @@ class User extends Authenticatable
     public function logs(): HasMany
     {
         return $this->hasMany(UserLog::class);
+    }
+
+    public function stripeName(): ?string
+    {
+        $fullName = trim(implode(' ', array_filter([$this->name, $this->surname])));
+
+        return $fullName !== '' ? $fullName : null;
+    }
+
+    public function stripePhone(): ?string
+    {
+        return $this->mobile;
+    }
+
+    /**
+     * Prefer the app Subscription model (users_subscriptions on the data connection).
+     *
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Cashier::$subscriptionModel, $this->getForeignKey())
+            ->orderByDesc('created_at');
     }
 }

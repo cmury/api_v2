@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Map\MapMarkersRequest;
+use App\Models\User;
+use App\Support\UserActivityLogger;
 use App\Support\Warehouse\ApplicationFilter;
 use App\Support\Warehouse\GeoJson;
 use App\Support\Warehouse\MapCsvExport;
@@ -16,6 +18,7 @@ class MapController extends Controller
     public function __construct(
         private readonly MapMarkerQuery $mapMarkerQuery = new MapMarkerQuery,
         private readonly MapCsvExport $mapCsvExport = new MapCsvExport,
+        private readonly UserActivityLogger $activityLogger = new UserActivityLogger,
     ) {}
 
     /**
@@ -36,6 +39,17 @@ class MapController extends Controller
     public function csv(MapMarkersRequest $request): StreamedResponse
     {
         $filter = ApplicationFilter::fromArray($request->filterPayload(), defaultDateWindow: true);
+
+        $user = $request->user();
+        if ($user instanceof User) {
+            $this->activityLogger->log(
+                $user,
+                UserActivityLogger::MAP_CSV_EXPORTED,
+                [
+                    'filter' => $request->filterPayload(),
+                ],
+            );
+        }
 
         return $this->mapCsvExport->stream($filter);
     }
