@@ -57,6 +57,11 @@ final class MapMarkerQuery
                 'a.decision',
                 'l.id as location_id',
                 'l.formatted_address',
+                'l.street_no',
+                'l.street',
+                'l.suburb',
+                'l.state',
+                'l.post_code',
             ])
             ->selectRaw('ST_Y(l.geom::geometry) AS lat')
             ->selectRaw('ST_X(l.geom::geometry) AS lng')

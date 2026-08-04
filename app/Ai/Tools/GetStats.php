@@ -29,8 +29,9 @@ class GetStats implements Tool
     public function description(): Stringable|string
     {
         return 'Aggregate warehouse metrics. Use for "how many", totals, breakdowns by application/development '
-            .'type or decision class, and optional charts. Metrics: applications, estimated_costs, '
-            .'application_types, development_types, decision_classes. Prefer this for counts over SQL.';
+            .'type or decision class, average decision duration, and optional charts. Metrics: applications, '
+            .'estimated_costs, decision_duration, application_types, development_types, decision_classes. '
+            .'Prefer this for counts over SQL.';
     }
 
     public function handle(Request $request): Stringable|string
@@ -56,7 +57,7 @@ class GetStats implements Tool
     public function schema(JsonSchema $schema): array
     {
         return $this->filterSchema($schema) + [
-            'metric' => $schema->string()->description('applications | estimated_costs | application_types | development_types | decision_classes'),
+            'metric' => $schema->string()->description('applications | estimated_costs | decision_duration | application_types | development_types | decision_classes'),
             'mode' => $schema->string()->description('metric (default) or chart'),
             'format' => $schema->string()->description('Chart only: auto | timeseries | calendar | categorical | bands'),
             'interval' => $schema->string()->description('Chart timeseries interval, e.g. month'),

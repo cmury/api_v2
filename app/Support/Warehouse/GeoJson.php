@@ -44,7 +44,7 @@ final class GeoJson
                 'lat', 'lng', 'formatted_address', 'submitted', 'application_count',
                 'id', 'location_id', 'location', 'portal_no', 'authority_no', 'type',
                 'description', 'decision', 'estimated_cost', 'development_classes',
-                'decision_classes',
+                'decision_classes', 'street_no', 'street', 'suburb', 'state', 'post_code',
             ] as $key) {
                 if (! array_key_exists($key, $data) && isset($row->{$key})) {
                     $data[$key] = $row->{$key};
@@ -78,6 +78,11 @@ final class GeoJson
                 'id' => $applicationId,
                 'location_id' => $locationId,
                 'location' => $address,
+                'street_no' => $data['street_no'] ?? null,
+                'street' => $data['street'] ?? null,
+                'suburb' => $data['suburb'] ?? null,
+                'state' => $data['state'] ?? null,
+                'post_code' => $data['post_code'] ?? null,
                 'submitted' => $data['submitted'] ?? null,
                 'type' => $data['type'] ?? null,
                 'portal_no' => $data['portal_no'] ?? null,

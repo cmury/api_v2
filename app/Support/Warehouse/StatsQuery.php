@@ -15,6 +15,7 @@ final class StatsQuery
     public const METRICS = [
         'applications',
         'estimated_costs',
+        'decision_duration',
         'application_types',
         'development_types',
         'decision_classes',
@@ -65,6 +66,7 @@ final class StatsQuery
         $value = match ($metric) {
             'applications' => $this->applicationsCount($filter),
             'estimated_costs' => $this->estimatedCosts($filter),
+            'decision_duration' => $this->decisionDuration($filter),
             'application_types' => $this->groupedCount($filter, 'application_types', 'application_application_types', 'application_type_id', 'at'),
             'development_types' => $this->groupedCount($filter, 'development_types', 'application_development_types', 'development_type_id', 'dt'),
             'decision_classes' => $this->decisionClassCounts($filter),
@@ -350,6 +352,30 @@ final class StatsQuery
             'count' => (int) ($row->count ?? 0),
             'sum' => $row->sum !== null ? (float) $row->sum : null,
             'avg' => $row->avg !== null ? round((float) $row->avg, 2) : null,
+        ];
+    }
+
+    /**
+     * Average days from submitted → decision for decided applications.
+     *
+     * @return array{count: int, avg: float|null}
+     */
+    private function decisionDuration(ApplicationFilter $filter): array
+    {
+        $query = Application::query()->from('applications as a')
+            ->whereNotNull('a.submitted')
+            ->whereNotNull('a.decision_date')
+            ->whereColumn('a.decision_date', '>=', 'a.submitted');
+
+        $this->applicationQuery->applyToApplications($query, $filter, 'a');
+
+        $row = $query->selectRaw('COUNT(DISTINCT a.id) AS count')
+            ->selectRaw('AVG((a.decision_date::date - a.submitted::date)) AS avg')
+            ->first();
+
+        return [
+            'count' => (int) ($row->count ?? 0),
+            'avg' => $row->avg !== null ? round((float) $row->avg, 1) : null,
         ];
     }
 

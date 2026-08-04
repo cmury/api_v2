@@ -113,7 +113,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 
 Map filter JSON (legacy + aliases): `map.bounds` `[latMax,lngMax,latMin,lngMin]`, `app` / `application_class_ids`, `type` / `development_class_ids`, `status` / `decision_class_ids`, `legislation_ids`, `estvalue`, `date`.
 
-Stats metrics: `applications`, `estimated_costs`, `application_types`, `development_types`, `decision_classes`.
+Stats metrics: `applications`, `estimated_costs`, `decision_duration`, `application_types`, `development_types`, `decision_classes`.
 
 Chart formats: `timeseries`, `calendar`, `categorical`, `bands` (or `auto`).
 

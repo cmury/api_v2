@@ -31,6 +31,7 @@ class ApplicationResource extends JsonResource
             'source' => $this->source,
             'record_extracted' => $this->record_extracted,
             'authority_record_modified' => $this->authority_record_modified,
+            'payload' => $this->payload,
             'authority' => AuthorityResource::make($this->whenLoaded('authority')),
             'locations' => LocationResource::collection($this->whenLoaded('locations')),
             'application_types' => $this->whenLoaded('applicationTypes', fn () => $this->applicationTypes->map(fn ($t) => [
@@ -64,6 +65,8 @@ class ApplicationResource extends JsonResource
                         'display_name' => $t->developmentClass->display_name,
                         'development_class' => $t->developmentClass->development_class,
                         'description' => $t->developmentClass->description,
+                        'icon' => $t->developmentClass->icon,
+                        'icon_priority' => (int) ($t->developmentClass->icon_priority ?? 0),
                     ]
                     : null,
                 // Legacy frontend alias
@@ -74,6 +77,8 @@ class ApplicationResource extends JsonResource
                         'display_name' => $t->developmentClass->display_name,
                         'development_class' => $t->developmentClass->development_class,
                         'description' => $t->developmentClass->description,
+                        'icon' => $t->developmentClass->icon,
+                        'icon_priority' => (int) ($t->developmentClass->icon_priority ?? 0),
                     ]
                     : null,
             ])),

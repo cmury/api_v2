@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactPortfolioController;
 use App\Http\Controllers\Api\FacilityController;
 use App\Http\Controllers\Api\ForecastController;
+use App\Http\Controllers\Api\GeocodeController;
 use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\LegislationController;
 use App\Http\Controllers\Api\LocationController;
@@ -29,6 +30,12 @@ Route::get('/status', StatusController::class);
 // Public map + coverage
 Route::get('/map/markers', [MapController::class, 'markers']);
 Route::get('/authorities/coverage', [AuthorityController::class, 'coverage']);
+
+// Public geocoding (OSM Nominatim via server cache + throttle)
+Route::middleware('throttle:geocode')->group(function () {
+    Route::get('/geocode', [GeocodeController::class, 'search']);
+    Route::get('/geocode/reverse', [GeocodeController::class, 'reverse']);
+});
 
 // Experimental Insights (tool-calling warehouse Q&A). Gated by INSIGHTS_ENABLED.
 if (config('imby.insights_enabled')) {

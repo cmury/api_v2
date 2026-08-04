@@ -19,8 +19,8 @@ class StatsController extends Controller
     /**
      * Aggregate a warehouse metric for the given filters.
      *
-     * Required: `metric` (`applications`, `estimated_costs`, `application_types`,
-     * `development_types`, `decision_classes`).
+     * Required: `metric` (`applications`, `estimated_costs`, `decision_duration`,
+     * `application_types`, `development_types`, `decision_classes`).
      *
      * Scope the count with filters such as `state`, `authority_id`, `location_id`,
      * class/legislation ids, date range, or map bounds — not a `scope` query param.

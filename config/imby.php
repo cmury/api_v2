@@ -95,4 +95,31 @@ return [
 
     'insights_timeout' => (int) env('INSIGHTS_TIMEOUT', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Geocoding (Nominatim / OpenStreetMap)
+    |--------------------------------------------------------------------------
+    |
+    | Forward + reverse geocode for map search and Explore place labels.
+    | Always call Nominatim from the API (never the browser). Cache aggressively.
+    |
+    */
+
+    'geocode_base_url' => env('GEOCODE_BASE_URL', 'https://nominatim.openstreetmap.org'),
+
+    'geocode_user_agent' => env(
+        'GEOCODE_USER_AGENT',
+        'IMBY/2.0 (https://imby.com.au; geocode@imby.com.au)',
+    ),
+
+    'geocode_countrycodes' => env('GEOCODE_COUNTRYCODES', 'au'),
+
+    /** Cache TTL in seconds (default 7 days). */
+    'geocode_cache_ttl' => (int) env('GEOCODE_CACHE_TTL', 604800),
+
+    'geocode_timeout' => (int) env('GEOCODE_TIMEOUT', 8),
+
+    /** Max requests per minute per IP for /geocode*. */
+    'geocode_rate_per_minute' => (int) env('GEOCODE_RATE_PER_MINUTE', 60),
+
 ];
