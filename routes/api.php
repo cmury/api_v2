@@ -80,6 +80,7 @@ Route::prefix('billing')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/status', [BillingController::class, 'status']);
+        Route::post('/confirm', [BillingController::class, 'confirm']);
         Route::post('/checkout', [BillingController::class, 'checkout']);
         Route::post('/portal', [BillingController::class, 'portal']);
         Route::post('/swap', [BillingController::class, 'swap']);

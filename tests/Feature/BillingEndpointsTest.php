@@ -103,6 +103,17 @@ class BillingEndpointsTest extends TestCase
             ->assertJsonValidationErrors('plan');
     }
 
+    public function test_confirm_requires_authentication_and_session_id(): void
+    {
+        $this->postJson('/api/billing/confirm', [])->assertUnauthorized();
+
+        Sanctum::actingAs(new User(['email' => 'billing@example.com']));
+
+        $this->postJson('/api/billing/confirm', [])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('session_id');
+    }
+
     public function test_cancel_and_resume_require_authentication(): void
     {
         $this->postJson('/api/billing/cancel')->assertUnauthorized();

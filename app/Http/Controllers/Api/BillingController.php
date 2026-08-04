@@ -8,6 +8,7 @@ use App\Http\Requests\Billing\PortalRequest;
 use App\Http\Requests\Billing\SwapPlanRequest;
 use App\Models\User;
 use App\Support\Billing\BillingPlans;
+use App\Support\Billing\SyncStripeSubscription;
 use App\Support\UserActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class BillingController extends Controller
     public function __construct(
         private readonly BillingPlans $plans,
         private readonly UserActivityLogger $activityLogger,
+        private readonly SyncStripeSubscription $subscriptionSync,
     ) {}
 
     public function plans(): JsonResponse
@@ -49,8 +51,62 @@ class BillingController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        // Without webhooks, Stripe is the source of truth for subscribe + cancel.
+        if ($user->hasStripeId()) {
+            $this->subscriptionSync->syncCustomer($user);
+            $user->refresh();
+            $user->unsetRelation('subscriptions');
+            $user->load('subscriptions');
+        }
+
         return response()->json([
             'message' => 'billing_status',
+            'data' => $this->statusPayload($user),
+        ]);
+    }
+
+    public function confirm(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'session_id' => ['required', 'string', 'max:255'],
+        ]);
+
+        try {
+            $session = $user->stripe()->checkout->sessions->retrieve($validated['session_id']);
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'checkout_session_not_found',
+                'errors' => [
+                    'session_id' => ['Unable to retrieve the Checkout session from Stripe.'],
+                ],
+            ], 404);
+        }
+
+        if ($user->hasStripeId() && $session->customer && $session->customer !== $user->stripe_id) {
+            return response()->json([
+                'message' => 'checkout_session_mismatch',
+                'errors' => [
+                    'session_id' => ['This Checkout session does not belong to the current user.'],
+                ],
+            ], 403);
+        }
+
+        if (is_string($session->subscription) && $session->subscription !== '') {
+            $this->subscriptionSync->syncById($user, $session->subscription);
+        } elseif ($user->hasStripeId()) {
+            $this->subscriptionSync->syncCustomer($user);
+        }
+
+        $user->refresh();
+        $user->load('subscriptions');
+
+        return response()->json([
+            'message' => 'checkout_confirmed',
             'data' => $this->statusPayload($user),
         ]);
     }
