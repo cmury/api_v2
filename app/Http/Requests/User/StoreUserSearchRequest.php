@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserSearchRequest extends FormRequest
 {
@@ -23,6 +24,17 @@ class StoreUserSearchRequest extends FormRequest
             'radius' => ['required', 'integer', 'min:0', 'max:100000'],
             'filter' => ['nullable', 'array'],
             'notify' => ['required', 'boolean'],
+            'pinned' => ['sometimes', 'boolean'],
+            'category' => ['nullable', 'string', Rule::in(self::categories())],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function categories(): array
+    {
+        return ['home', 'work', 'holiday_rental', 'project'];
     }
 }

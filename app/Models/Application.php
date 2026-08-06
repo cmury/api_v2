@@ -78,4 +78,18 @@ class Application extends Model
             ])
             ->withTimestamps();
     }
+
+    public function applicationCertifiers(): HasMany
+    {
+        return $this->hasMany(ApplicationCertifier::class);
+    }
+
+    public function certifiers(): BelongsToMany
+    {
+        return $this->belongsToMany(Certifier::class, 'application_certifiers')
+            ->withPivot([
+                'id', 'certifier_application_no', 'decision', 'is_primary', 'source',
+            ])
+            ->withTimestamps();
+    }
 }

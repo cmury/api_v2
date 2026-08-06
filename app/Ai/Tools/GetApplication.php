@@ -23,7 +23,7 @@ class GetApplication implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Fetch one application by id with authority, locations, published contacts, and taxonomy labels. '
+        return 'Fetch one application by id with authority, locations, published contacts, certifiers, and taxonomy labels. '
             .'Resolve the id via search_applications when the user only has an authority_no or description.';
     }
 
@@ -42,6 +42,7 @@ class GetApplication implements Tool
                 'developmentTypes:id,name,display_name',
                 'decisionTypes:id,name,display_name',
                 'applicationContacts' => fn ($q) => $q->where('status', 'published')->with('contact'),
+                'applicationCertifiers' => fn ($q) => $q->orderByDesc('is_primary')->with('certifier'),
             ])
             ->find($id);
 
@@ -74,6 +75,16 @@ class GetApplication implements Tool
                 'type' => $link->contact?->type,
                 'email' => $link->email_override ?: $link->contact?->email,
                 'phone' => $link->phone_override ?: $link->contact?->phone,
+            ])->all(),
+            'certifiers' => $application->applicationCertifiers->map(fn ($link) => [
+                'is_primary' => $link->is_primary,
+                'certifier_application_no' => $link->certifier_application_no,
+                'decision' => $link->decision,
+                'registration_number' => $link->certifier?->registration_number,
+                'name' => $link->certifier?->name,
+                'organisation' => $link->certifier?->organisation,
+                'status' => $link->certifier?->status,
+                'enrichment_status' => $link->certifier?->enrichment_status,
             ])->all(),
             'application_types' => $application->applicationTypes->pluck('name')->all(),
             'development_types' => $application->developmentTypes->pluck('name')->all(),

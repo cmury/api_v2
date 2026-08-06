@@ -18,6 +18,9 @@ class UserSearch extends Model
         'radius',
         'filter',
         'notify',
+        'pinned',
+        'category',
+        'notes',
     ];
 
     protected function casts(): array
@@ -25,6 +28,7 @@ class UserSearch extends Model
         return [
             'filter' => 'array',
             'notify' => 'boolean',
+            'pinned' => 'boolean',
             'lat' => 'float',
             'lng' => 'float',
         ];

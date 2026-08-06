@@ -27,6 +27,8 @@ class UserSearchController extends Controller
 
         $searches = UserSearch::query()
             ->where('user_id', $user->id)
+            ->orderByDesc('pinned')
+            ->orderByDesc('updated_at')
             ->orderBy('name')
             ->get();
 
@@ -42,6 +44,9 @@ class UserSearchController extends Controller
             ...$request->validated(),
             'user_id' => $user->id,
             'filter' => $request->input('filter', []),
+            'pinned' => $request->boolean('pinned', false),
+            'category' => $request->input('category'),
+            'notes' => $request->input('notes'),
         ]);
 
         $this->activityLogger->log(

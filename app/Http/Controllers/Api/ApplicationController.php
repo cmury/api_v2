@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouse\ListApplicationsRequest;
 use App\Http\Requests\Warehouse\StoreApplicationContactRequest;
+use App\Http\Resources\ApplicationCertifierResource;
 use App\Http\Resources\ApplicationContactResource;
 use App\Http\Resources\ApplicationResource;
 use App\Http\Resources\LegislationResource;
 use App\Models\Application;
+use App\Models\ApplicationCertifier;
 use App\Models\ApplicationContact;
 use App\Models\Contact;
 use App\Models\User;
@@ -57,6 +59,8 @@ class ApplicationController extends Controller
             'decisionTypes.decisionClass',
             'applicationContacts' => fn ($q) => $q->where('status', 'published')->orderByDesc('is_primary')->orderBy('role'),
             'applicationContacts.contact',
+            'applicationCertifiers' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+            'applicationCertifiers.certifier',
         ]);
 
         foreach ($application->locations as $location) {
@@ -126,6 +130,21 @@ class ApplicationController extends Controller
         }
 
         return ApplicationContactResource::collection($query->get());
+    }
+
+    /**
+     * Certifiers linked to an application (Fair Trading register links).
+     */
+    public function certifiers(Application $application): AnonymousResourceCollection
+    {
+        $rows = ApplicationCertifier::query()
+            ->with('certifier')
+            ->where('application_id', $application->id)
+            ->orderByDesc('is_primary')
+            ->orderBy('id')
+            ->get();
+
+        return ApplicationCertifierResource::collection($rows);
     }
 
     /**

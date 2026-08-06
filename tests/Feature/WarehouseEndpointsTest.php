@@ -214,6 +214,40 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/applications/1/contacts')->assertUnauthorized();
     }
 
+    public function test_certifiers_require_authentication(): void
+    {
+        $this->getJson('/api/certifiers')->assertUnauthorized();
+        $this->getJson('/api/certifiers/1')->assertUnauthorized();
+        $this->getJson('/api/certifiers/1/applications')->assertUnauthorized();
+        $this->getJson('/api/applications/1/certifiers')->assertUnauthorized();
+    }
+
+    public function test_certifiers_reject_invalid_enrichment_status(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->getJson('/api/certifiers?enrichment_status=not_a_status')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('enrichment_status');
+    }
+
+    public function test_certifiers_accept_enrichment_filters_validation(): void
+    {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        foreach (['pending', 'enriched', 'not_found', 'failed'] as $status) {
+            $response = $this->getJson('/api/certifiers?enrichment_status='.$status);
+            $this->assertNotSame(422, $response->status());
+            $this->assertNotSame(401, $response->status());
+        }
+
+        foreach (['1', '0', 'true', 'false'] as $enriched) {
+            $response = $this->getJson('/api/certifiers?enriched='.$enriched);
+            $this->assertNotSame(422, $response->status());
+            $this->assertNotSame(401, $response->status());
+        }
+    }
+
     public function test_application_contact_contribute_requires_role(): void
     {
         Sanctum::actingAs(new User(['email' => 'tester@example.com']));

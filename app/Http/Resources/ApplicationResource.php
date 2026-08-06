@@ -106,6 +106,7 @@ class ApplicationResource extends JsonResource
             ])),
             'legislation' => LegislationResource::collection($this->whenLoaded('legislations')),
             'contacts' => ApplicationContactResource::collection($this->whenLoaded('applicationContacts')),
+            'certifiers' => ApplicationCertifierResource::collection($this->whenLoaded('applicationCertifiers')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

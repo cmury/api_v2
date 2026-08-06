@@ -35,6 +35,8 @@ API to work.
 - Facilities: `/api/facilities` (+ near/applications).
 - Planning controls: `/api/planning-controls`, `/api/planning-controls/at-point`, taxonomies for layers/codes.
 - Contacts: `/api/contacts`, `/api/applications/{id}/contacts` (contribute via POST).
+- Certifiers: `/api/certifiers` (filter `enrichment_status` / `enriched`), `/api/certifiers/{id}/applications`,
+  `/api/applications/{id}/certifiers` (read-only Fair Trading register links).
 - Claims: `/api/user/contact-profile`, `/api/user/claims`, `POST|DELETE /api/applications/{id}/claim`.
 - Portfolio: `/api/contacts/{id}/portfolio` (owner add/remove; published list for others).
 - Favourites: CRUD `/api/user/favourites`.

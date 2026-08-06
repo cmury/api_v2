@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateUserSearchRequest extends FormRequest
 {
@@ -23,6 +24,9 @@ class UpdateUserSearchRequest extends FormRequest
             'radius' => ['required', 'integer', 'min:0', 'max:100000'],
             'filter' => ['nullable', 'array'],
             'notify' => ['required', 'boolean'],
+            'pinned' => ['required', 'boolean'],
+            'category' => ['nullable', 'string', Rule::in(StoreUserSearchRequest::categories())],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

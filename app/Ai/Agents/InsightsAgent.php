@@ -13,6 +13,7 @@ use App\Ai\Tools\RunWarehouseSql;
 use App\Ai\Tools\SearchApplications;
 use App\Ai\Tools\SearchApplicationsNearFacility;
 use App\Ai\Tools\SearchAuthorities;
+use App\Ai\Tools\SearchCertifiers;
 use App\Ai\Tools\SearchContacts;
 use App\Ai\Tools\SearchFacilities;
 use App\Ai\Tools\SearchLocations;
@@ -123,6 +124,7 @@ class InsightsAgent implements Agent, Conversational, HasStructuredOutput, HasTo
             new SearchPlanningControls,
             new GetPlanningAtPoint,
             new SearchContacts,
+            new SearchCertifiers,
             new GetStats,
             new GetForecast,
             new ListTaxonomies,

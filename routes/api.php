@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
 use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\CertifierController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactPortfolioController;
 use App\Http\Controllers\Api\FacilityController;
@@ -150,6 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}/legislation', [ApplicationController::class, 'legislations']);
     Route::get('/applications/{application}/contacts', [ApplicationController::class, 'contacts']);
     Route::post('/applications/{application}/contacts', [ApplicationController::class, 'storeContact']);
+    Route::get('/applications/{application}/certifiers', [ApplicationController::class, 'certifiers']);
     Route::post('/applications/{application}/claim', [ApplicationClaimController::class, 'store']);
     Route::delete('/applications/{application}/claim', [ApplicationClaimController::class, 'destroy']);
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
@@ -161,6 +163,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/contacts/{contact}/portfolio', [ContactPortfolioController::class, 'store']);
     Route::delete('/contacts/{contact}/portfolio/{applicationContact}', [ContactPortfolioController::class, 'destroy']);
     Route::get('/contacts/{contact}', [ContactController::class, 'show']);
+
+    // Certifiers (NSW Fair Trading BDC register catalogue)
+    Route::get('/certifiers', [CertifierController::class, 'index']);
+    Route::get('/certifiers/{certifier}/applications', [CertifierController::class, 'applications']);
+    Route::get('/certifiers/{certifier}', [CertifierController::class, 'show']);
 
     // Legislation endpoints
     Route::get('/legislation', [LegislationController::class, 'index']);

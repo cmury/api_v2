@@ -21,6 +21,9 @@ class UserSearchResource extends JsonResource
             'radius' => $this->radius,
             'filter' => $this->filter ?? [],
             'notify' => (bool) $this->notify,
+            'pinned' => (bool) $this->pinned,
+            'category' => $this->category,
+            'notes' => $this->notes,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

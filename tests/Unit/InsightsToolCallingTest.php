@@ -53,6 +53,7 @@ class InsightsToolCallingTest extends TestCase
             'search_planning_controls',
             'get_planning_at_point',
             'search_contacts',
+            'search_certifiers',
             'get_stats',
             'get_forecast',
             'list_taxonomies',
