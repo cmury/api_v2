@@ -38,6 +38,7 @@ class FacilityController extends Controller
             $request->filled('state') ? (string) $request->input('state') : null,
             $request->filled('facility_type') ? (string) $request->input('facility_type') : null,
             $request->filled('operational_status') ? (string) $request->input('operational_status') : null,
+            $request->bounds(),
         );
 
         $query = $this->facilitySearch->ordered($query, (string) $request->input('order', 'name'));

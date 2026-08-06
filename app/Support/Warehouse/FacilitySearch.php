@@ -20,6 +20,7 @@ final class FacilitySearch
         ?string $state = null,
         ?string $facilityType = null,
         ?string $operationalStatus = null,
+        ?array $bounds = null,
     ): Builder {
         $query = Facility::query()
             ->select('facilities.*')
@@ -45,6 +46,21 @@ final class FacilitySearch
                 $q->where('facilities.name', 'ilike', $like)
                     ->orWhere('facilities.name_alt', 'ilike', $like);
             });
+        }
+
+        if (is_array($bounds) && count($bounds) === 4) {
+            [$swLat, $swLng, $neLat, $neLng] = array_map('floatval', $bounds);
+            // Point-in-bbox via lon/lat (reliable for geography Point columns).
+            $query->whereRaw(
+                'ST_Y(facilities.geom::geometry) BETWEEN ? AND ?
+                 AND ST_X(facilities.geom::geometry) BETWEEN ? AND ?',
+                [
+                    min($swLat, $neLat),
+                    max($swLat, $neLat),
+                    min($swLng, $neLng),
+                    max($swLng, $neLng),
+                ],
+            );
         }
 
         return $query;

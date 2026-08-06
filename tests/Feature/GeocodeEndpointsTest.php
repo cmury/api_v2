@@ -43,9 +43,50 @@ class GeocodeEndpointsTest extends TestCase
         $this->getJson('/api/geocode?q=balmain')
             ->assertOk()
             ->assertJsonPath('data.0.suburb', 'Balmain')
+            ->assertJsonPath('data.0.label', 'Balmain, Inner West Council NSW 2041')
             ->assertJsonPath('data.0.lat', -33.858)
             ->assertJsonPath('data.0.lng', 151.178)
             ->assertJsonPath('data.0.source', 'nominatim');
+    }
+
+    public function test_geocode_search_includes_street_in_label(): void
+    {
+        Http::fake([
+            'nominatim.openstreetmap.org/search*' => Http::response([
+                [
+                    'lat' => '-33.8593115',
+                    'lon' => '151.1822048',
+                    'display_name' => 'Booth Street, Balmain, Inner West, Sydney, New South Wales, 2041, Australia',
+                    'address' => [
+                        'road' => 'Booth Street',
+                        'suburb' => 'Balmain',
+                        'borough' => 'Inner West',
+                        'city' => 'Sydney',
+                        'state' => 'New South Wales',
+                        'postcode' => '2041',
+                    ],
+                ],
+                [
+                    'lat' => '-33.8615467',
+                    'lon' => '151.1824849',
+                    'display_name' => 'Booth Street, Balmain, Inner West, Sydney, New South Wales, 2041, Australia',
+                    'address' => [
+                        'road' => 'Booth Street',
+                        'suburb' => 'Balmain',
+                        'borough' => 'Inner West',
+                        'city' => 'Sydney',
+                        'state' => 'New South Wales',
+                        'postcode' => '2041',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->getJson('/api/geocode?q='.urlencode('8 Booth Street Balmain'))
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.label', 'Booth Street, Balmain NSW 2041')
+            ->assertJsonPath('data.0.lga', 'Inner West');
     }
 
     public function test_geocode_reverse_requires_coordinates(): void
@@ -74,7 +115,7 @@ class GeocodeEndpointsTest extends TestCase
         $this->getJson('/api/geocode/reverse?lat=-33.858&lng=151.178')
             ->assertOk()
             ->assertJsonPath('data.suburb', 'Balmain')
-            ->assertJsonPath('data.label', 'Balmain, Inner West Council, New South Wales');
+            ->assertJsonPath('data.label', 'Balmain, Inner West Council NSW 2041');
     }
 
     public function test_geocode_reverse_returns_null_data_when_not_found(): void

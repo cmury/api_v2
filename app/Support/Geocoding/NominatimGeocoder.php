@@ -20,7 +20,7 @@ final class NominatimGeocoder
         }
 
         $limit = max(1, min($limit, 10));
-        $cacheKey = sprintf('geocode:v1:search:%s:%d', mb_strtolower($query), $limit);
+        $cacheKey = sprintf('geocode:v2:search:%s:%d', mb_strtolower($query), $limit);
 
         return Cache::remember(
             $cacheKey,
@@ -36,7 +36,7 @@ final class NominatimGeocoder
     {
         $roundedLat = round($lat, 5);
         $roundedLng = round($lng, 5);
-        $cacheKey = sprintf('geocode:v1:reverse:%s:%s', $roundedLat, $roundedLng);
+        $cacheKey = sprintf('geocode:v2:reverse:%s:%s', $roundedLat, $roundedLng);
 
         return Cache::remember(
             $cacheKey,
@@ -71,14 +71,23 @@ final class NominatimGeocoder
         }
 
         $results = [];
+        $seen = [];
         foreach ($rows as $row) {
             if (! is_array($row)) {
                 continue;
             }
             $mapped = $this->mapResult($row);
-            if ($mapped !== null) {
-                $results[] = $mapped;
+            if ($mapped === null) {
+                continue;
             }
+
+            // Drop near-duplicate street segments that share the same label.
+            $dedupeKey = mb_strtolower((string) $mapped['label']);
+            if (isset($seen[$dedupeKey])) {
+                continue;
+            }
+            $seen[$dedupeKey] = true;
+            $results[] = $mapped;
         }
 
         return $results;
@@ -133,6 +142,14 @@ final class NominatimGeocoder
         }
 
         $address = is_array($row['address'] ?? null) ? $row['address'] : [];
+        $houseNumber = $this->firstString($address, ['house_number']);
+        $road = $this->firstString($address, [
+            'road',
+            'pedestrian',
+            'footway',
+            'path',
+            'residential',
+        ]);
         $suburb = $this->firstString($address, [
             'suburb',
             'neighbourhood',
@@ -143,21 +160,29 @@ final class NominatimGeocoder
             'hamlet',
             'locality',
         ]);
+        // Prefer borough/municipality over city — AU metros often set city=Sydney.
         $lga = $this->firstString($address, [
             'municipality',
-            'city',
+            'borough',
+            'city_district',
             'county',
             'state_district',
+            'city',
         ]);
         $state = $this->firstString($address, ['state']);
         $postcode = $this->firstString($address, ['postcode']);
 
-        $labelParts = array_values(array_filter([$suburb, $lga, $state], fn ($part) => is_string($part) && $part !== ''));
-        $label = $labelParts !== []
-            ? implode(', ', $labelParts)
-            : (is_string($row['display_name'] ?? null) ? (string) $row['display_name'] : null);
+        $label = $this->buildLabel(
+            houseNumber: $houseNumber,
+            road: $road,
+            suburb: $suburb,
+            lga: $lga,
+            state: $state,
+            postcode: $postcode,
+            displayName: is_string($row['display_name'] ?? null) ? (string) $row['display_name'] : null,
+        );
 
-        if ($label === null || $label === '') {
+        if ($label === '') {
             $label = sprintf('%.5f, %.5f', $lat, $lng);
         }
 
@@ -186,6 +211,100 @@ final class NominatimGeocoder
             'bbox' => $bbox,
             'source' => 'nominatim',
         ];
+    }
+
+    /**
+     * Australian-style place label: "8 Booth Street, Balmain NSW 2041".
+     */
+    private function buildLabel(
+        ?string $houseNumber,
+        ?string $road,
+        ?string $suburb,
+        ?string $lga,
+        ?string $state,
+        ?string $postcode,
+        ?string $displayName,
+    ): string {
+        $street = null;
+        if ($road !== null) {
+            $street = $houseNumber !== null ? $houseNumber.' '.$road : $road;
+        } elseif ($houseNumber !== null) {
+            $street = $houseNumber;
+        }
+
+        $stateAbbr = $this->abbreviateState($state) ?? $state;
+        $locality = $suburb ?? $lga;
+
+        // "Balmain NSW 2041" / "Inner West NSW"
+        $placeParts = array_values(array_filter(
+            [$locality, $stateAbbr, $postcode],
+            fn ($part) => is_string($part) && $part !== '',
+        ));
+        $place = implode(' ', $placeParts);
+
+        if ($street !== null && $place !== '') {
+            return $street.', '.$place;
+        }
+        if ($street !== null) {
+            return $street;
+        }
+        if ($place !== '') {
+            // Suburb-only: include LGA when it adds context and differs from suburb.
+            if (
+                $suburb !== null
+                && $lga !== null
+                && ! $this->namesMatch($suburb, $lga)
+                && ! $this->namesMatch($lga, 'Sydney')
+            ) {
+                $withLga = array_values(array_filter(
+                    [$suburb, $lga, $stateAbbr, $postcode],
+                    fn ($part) => is_string($part) && $part !== '',
+                ));
+
+                // "Balmain, Inner West NSW 2041"
+                $head = array_shift($withLga);
+
+                return $head.', '.implode(' ', $withLga);
+            }
+
+            return $place;
+        }
+
+        return is_string($displayName) ? trim($displayName) : '';
+    }
+
+    private function abbreviateState(?string $state): ?string
+    {
+        if ($state === null || trim($state) === '') {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($state));
+        $map = [
+            'new south wales' => 'NSW',
+            'nsw' => 'NSW',
+            'victoria' => 'VIC',
+            'vic' => 'VIC',
+            'queensland' => 'QLD',
+            'qld' => 'QLD',
+            'south australia' => 'SA',
+            'sa' => 'SA',
+            'western australia' => 'WA',
+            'wa' => 'WA',
+            'tasmania' => 'TAS',
+            'tas' => 'TAS',
+            'northern territory' => 'NT',
+            'nt' => 'NT',
+            'australian capital territory' => 'ACT',
+            'act' => 'ACT',
+        ];
+
+        return $map[$normalized] ?? trim($state);
+    }
+
+    private function namesMatch(string $a, string $b): bool
+    {
+        return mb_strtolower(trim($a)) === mb_strtolower(trim($b));
     }
 
     /**
