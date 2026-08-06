@@ -118,8 +118,40 @@ final class MapMarkerQuery
             ->get()
             ->groupBy(fn (object $row) => (int) $row->application_id);
 
-        return $rows->map(function (object $row) use ($classesByApplication, $decisionClassesByApplication) {
+        // Prefer taxonomy display_name for the type chip / label on markers.
+        $typeLabelByApplication = DB::connection($connection)
+            ->table('application_application_types as aat')
+            ->join('application_types as at', 'at.id', '=', 'aat.application_type_id')
+            ->whereIn('aat.application_id', $rowIds)
+            ->orderBy('aat.application_type_id')
+            ->select([
+                'aat.application_id',
+                'at.display_name',
+                'at.name',
+            ])
+            ->get()
+            ->groupBy(fn (object $row) => (int) $row->application_id)
+            ->map(static function (Collection $types): ?string {
+                $first = $types->first();
+                if ($first === null) {
+                    return null;
+                }
+                $display = is_string($first->display_name) ? trim($first->display_name) : '';
+                if ($display !== '') {
+                    return $display;
+                }
+                $name = is_string($first->name) ? trim($first->name) : '';
+
+                return $name !== '' ? $name : null;
+            });
+
+        return $rows->map(function (object $row) use ($classesByApplication, $decisionClassesByApplication, $typeLabelByApplication) {
             $applicationId = (int) $row->id;
+
+            $typeLabel = $typeLabelByApplication->get($applicationId);
+            if (is_string($typeLabel) && $typeLabel !== '') {
+                $row->type = $typeLabel;
+            }
 
             $row->development_classes = ($classesByApplication->get($applicationId) ?? collect())
                 ->unique('id')
