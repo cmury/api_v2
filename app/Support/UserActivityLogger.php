@@ -13,6 +13,12 @@ final class UserActivityLogger
 
     public const LOGOUT = 'logout';
 
+    public const PASSKEY_LOGIN = 'passkey_login';
+
+    public const PASSKEY_REGISTERED = 'passkey_registered';
+
+    public const PASSKEY_DELETED = 'passkey_deleted';
+
     public const PASSWORD_CHANGED = 'password_changed';
 
     public const PASSWORD_RESET = 'password_reset';

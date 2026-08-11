@@ -119,6 +119,13 @@ final class DeleteUserAccount
                 ->where('tokenable_id', $userId)
                 ->delete();
 
+            if (Schema::connection($connection)->hasTable('users_passkeys')) {
+                DB::connection($connection)
+                    ->table('users_passkeys')
+                    ->where('user_id', $userId)
+                    ->delete();
+            }
+
             if (Schema::connection($connection)->hasTable('password_reset_tokens')) {
                 DB::connection($connection)
                     ->table('password_reset_tokens')

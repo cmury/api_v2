@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApplicationClaimController;
 use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\Auth\PasskeyController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\AuthorityController;
 use App\Http\Controllers\Api\BillingController;
@@ -69,9 +70,21 @@ Route::prefix('auth')->group(function () {
     Route::post('/password/forgot', [PasswordResetController::class, 'forgot']);
     Route::post('/password/reset', [PasswordResetController::class, 'reset']);
 
+    Route::prefix('passkeys')->middleware('throttle:6,1')->group(function () {
+        Route::get('/login/options', [PasskeyController::class, 'loginOptions']);
+        Route::post('/login', [PasskeyController::class, 'login']);
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/password/change', [AuthController::class, 'changePassword']);
+
+        Route::prefix('passkeys')->middleware('throttle:6,1')->group(function () {
+            Route::get('/', [PasskeyController::class, 'index']);
+            Route::get('/register/options', [PasskeyController::class, 'registerOptions']);
+            Route::post('/register', [PasskeyController::class, 'store']);
+            Route::delete('/{passkey}', [PasskeyController::class, 'destroy']);
+        });
     });
 });
 

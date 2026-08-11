@@ -12,12 +12,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Cashier\Billable;
 use Laravel\Cashier\Cashier;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use Billable, HasApiTokens, HasFactory, Notifiable;
+    use Billable, HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
 
     protected $fillable = [
         'name',
@@ -70,6 +72,13 @@ class User extends Authenticatable
     public function logs(): HasMany
     {
         return $this->hasMany(UserLog::class);
+    }
+
+    public function getPasskeyDisplayName(): string
+    {
+        $fullName = trim(implode(' ', array_filter([$this->name, $this->surname])));
+
+        return $fullName !== '' ? $fullName : (string) ($this->email ?? $this->getAuthIdentifier());
     }
 
     public function stripeName(): ?string

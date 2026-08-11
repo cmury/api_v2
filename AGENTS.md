@@ -5,7 +5,7 @@
 This repo (`api_v2`) is the IMBY **JSON API** (Laravel 13, Sanctum bearer tokens), served on
 **port 8001**. It owns **no schema**: every model uses the `data` connection →
 `imby_data_v2`, whose tables (users, users_searches, users_preferences, users_log,
-personal_access_tokens, password_reset_tokens, warehouse tables, users_chat_*) are created and
+personal_access_tokens, password_reset_tokens, users_passkeys, warehouse tables, users_chat_*) are created and
 owned by the sibling **`agents_v2`** repo. Run `agents_v2` migrations before expecting the
 API to work.
 
@@ -28,6 +28,11 @@ API to work.
 - Smoke check: `GET http://localhost:8001/api/status` → `{"database":{"ok":true,...}}`.
 - Auth flow: `POST /api/auth/register` or `/api/auth/login` return a bearer token under
   `data.token`; pass it as `Authorization: Bearer <token>` to `/api/user/*` and warehouse routes.
+- Passkeys (WebAuthn): `GET /api/auth/passkeys/login/options` + `POST /api/auth/passkeys/login`
+  return the same Bearer token shape. Authenticated manage: `GET|POST /api/auth/passkeys*` /
+  `DELETE /api/auth/passkeys/{id}`. Table `users_passkeys` (agents_v2). Configure
+  `PASSKEYS_RELYING_PARTY_ID` + `PASSKEYS_ALLOWED_ORIGINS` (include the SPA origin). Password
+  login remains available.
 
 ### Warehouse read APIs
 - Map: `GET /api/map/markers` (public GeoJSON), `GET /api/map/markers/csv` (Bearer).

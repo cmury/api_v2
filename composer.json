@@ -12,6 +12,7 @@
         "laravel/ai": "^0.9.1",
         "laravel/cashier": "^16.6",
         "laravel/framework": "^13.8",
+        "laravel/passkeys": "^0.2.1",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0"
     },

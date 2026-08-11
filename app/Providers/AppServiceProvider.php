@@ -5,12 +5,14 @@ namespace App\Providers;
 use App\Models\Subscription;
 use App\Models\SubscriptionItem;
 use App\Models\User;
+use App\Models\UserPasskey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Cashier\Cashier;
+use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Schema + Sanctum JSON routes live in this app / agents_v2.
+        Passkeys::ignoreRoutes();
     }
 
     /**
@@ -31,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
         Cashier::useCustomerModel(User::class);
         Cashier::useSubscriptionModel(Subscription::class);
         Cashier::useSubscriptionItemModel(SubscriptionItem::class);
+
+        Passkeys::useUserModel(User::class);
+        Passkeys::usePasskeyModel(UserPasskey::class);
 
         // Scramble docs UI + OpenAPI JSON (local/testing by default).
         Gate::define('viewApiDocs', function ($user = null) {
