@@ -61,20 +61,21 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/locations')->assertUnauthorized();
     }
 
-    public function test_stats_require_authentication_and_metric(): void
+    public function test_stats_require_authentication_and_pro_plan(): void
     {
         $this->getJson('/api/stats')->assertUnauthorized();
 
         Sanctum::actingAs(new User(['email' => 'tester@example.com']));
 
         $this->getJson('/api/stats')
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('metric');
+            ->assertForbidden()
+            ->assertJsonPath('message', 'plan_required')
+            ->assertJsonPath('required_plan', 'pro');
     }
 
-    public function test_stats_rejects_unknown_metric(): void
+    public function test_stats_reject_unknown_metric_on_pro(): void
     {
-        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+        $this->actingAsPlan('pro');
 
         $this->getJson('/api/stats?metric=not_a_metric')
             ->assertStatus(422)
@@ -98,7 +99,7 @@ class WarehouseEndpointsTest extends TestCase
 
     public function test_charts_reject_invalid_format(): void
     {
-        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+        $this->actingAsPlan('pro');
 
         $this->getJson('/api/charts?metric=applications&format=not_a_format')
             ->assertStatus(422)
@@ -107,11 +108,12 @@ class WarehouseEndpointsTest extends TestCase
 
     public function test_charts_accept_categorical_metric_validation(): void
     {
-        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+        $this->actingAsPlan('pro');
 
         $response = $this->getJson('/api/charts?metric=application_types&format=categorical&limit=5');
         $this->assertNotSame(422, $response->status());
         $this->assertNotSame(401, $response->status());
+        $this->assertNotSame(403, $response->status());
     }
 
     public function test_authority_statistics_require_authentication(): void
@@ -203,12 +205,21 @@ class WarehouseEndpointsTest extends TestCase
     {
         $this->getJson('/api/planning-controls')->assertUnauthorized();
         $this->getJson('/api/planning-controls/1')->assertUnauthorized();
+        $this->getJson('/api/planning-controls/at-point')->assertUnauthorized();
         $this->getJson('/api/taxonomies/planning-layers')->assertUnauthorized();
         $this->getJson('/api/taxonomies/planning-codes')->assertUnauthorized();
     }
 
-    public function test_planning_controls_at_point_is_public_and_requires_coordinates(): void
+    public function test_planning_controls_at_point_requires_core_and_coordinates(): void
     {
+        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
+
+        $this->getJson('/api/planning-controls/at-point')
+            ->assertForbidden()
+            ->assertJsonPath('required_plan', 'core');
+
+        $this->actingAsPlan('core');
+
         $this->getJson('/api/planning-controls/at-point')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['lat', 'lng']);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Billing\BillingPlans;
 use App\Support\DataDatabase;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -102,5 +103,27 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasMany(Cashier::$subscriptionModel, $this->getForeignKey())
             ->orderByDesc('created_at');
+    }
+
+    /**
+     * Effective Stripe plan key for feature gates (`free` when not subscribed).
+     */
+    public function billingPlanKey(): string
+    {
+        if (! $this->getKey()) {
+            return 'free';
+        }
+
+        try {
+            if (! $this->subscribed(BillingPlans::SUBSCRIPTION_TYPE)) {
+                return 'free';
+            }
+        } catch (\Throwable) {
+            return 'free';
+        }
+
+        $priceId = $this->subscription(BillingPlans::SUBSCRIPTION_TYPE)?->stripe_price;
+
+        return app(BillingPlans::class)->keyForPriceId($priceId) ?? 'core';
     }
 }

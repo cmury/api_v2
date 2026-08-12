@@ -39,7 +39,6 @@ Route::get('/authorities/coverage', [AuthorityController::class, 'coverage']);
 Route::get('/applications/{application}', [ApplicationController::class, 'show']);
 Route::post('/applications/{application}/view', [ApplicationController::class, 'view']);
 Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
-Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
 
 // Public shareable links for searches and applications
 Route::post('/search/share', [MapController::class, 'share']);
@@ -151,7 +150,7 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 
 });
 
-// Warehouse read APIs (ported from old api, collapsed where duplicated)
+// Warehouse read APIs
 Route::middleware('auth:sanctum')->group(function () {
 
     // Mapping endpoints for map markers and CSV export
@@ -206,13 +205,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/facilities/{facility}/applications', [FacilityController::class, 'applications']);
     Route::get('/facilities/{facility}', [FacilityController::class, 'show']);
 
-    // Principal planning controls (zoning, FSR, height, …)
-    Route::get('/planning-controls', [PlanningControlController::class, 'index']);
-    Route::get('/planning-controls/{planningControl}', [PlanningControlController::class, 'show']);
+    // Principal planning controls (zoning, FSR, height, …) — Core+
+    Route::middleware('plan:planning-layers')->group(function () {
+        Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
+        Route::get('/planning-controls', [PlanningControlController::class, 'index']);
+        Route::get('/planning-controls/{planningControl}', [PlanningControlController::class, 'show']);
+        Route::get('/taxonomies/planning-layers', [PlanningControlController::class, 'layers']);
+        Route::get('/taxonomies/planning-codes', [PlanningControlController::class, 'codes']);
+    });
 
-    // Stats, charts, and forecasts
-    Route::get('/stats', [StatsController::class, 'show']);
-    Route::get('/charts', [StatsController::class, 'chart']);
+    // Stats and charts — Pro+
+    Route::middleware('plan:analytics')->group(function () {
+        Route::get('/stats', [StatsController::class, 'show']);
+        Route::get('/charts', [StatsController::class, 'chart']);
+    });
     Route::get('/forecasts', [ForecastController::class, 'show']);
 
     // Taxonomy endpoints
@@ -222,7 +228,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/taxonomies/development-types', [TaxonomyController::class, 'developmentTypes']);
     Route::get('/taxonomies/decision-classes', [TaxonomyController::class, 'decisionClasses']);
     Route::get('/taxonomies/decision-types', [TaxonomyController::class, 'decisionTypes']);
-    Route::get('/taxonomies/planning-layers', [PlanningControlController::class, 'layers']);
-    Route::get('/taxonomies/planning-codes', [PlanningControlController::class, 'codes']);
 
 });
