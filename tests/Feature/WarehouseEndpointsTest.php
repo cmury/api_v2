@@ -27,6 +27,22 @@ class WarehouseEndpointsTest extends TestCase
         $this->getJson('/api/applications')->assertUnauthorized();
     }
 
+    public function test_application_show_is_public(): void
+    {
+        // Guest may hit missing warehouse schema (404/5xx); must not be 401.
+        $this->assertNotSame(401, $this->getJson('/api/applications/1')->status());
+    }
+
+    public function test_application_view_beacon_is_public(): void
+    {
+        $this->assertNotSame(401, $this->postJson('/api/applications/1/view')->status());
+    }
+
+    public function test_location_applications_is_public(): void
+    {
+        $this->assertNotSame(401, $this->getJson('/api/locations/1/applications')->status());
+    }
+
     public function test_locations_require_authentication(): void
     {
         $this->getJson('/api/locations')->assertUnauthorized();
@@ -174,15 +190,12 @@ class WarehouseEndpointsTest extends TestCase
     {
         $this->getJson('/api/planning-controls')->assertUnauthorized();
         $this->getJson('/api/planning-controls/1')->assertUnauthorized();
-        $this->getJson('/api/planning-controls/at-point')->assertUnauthorized();
         $this->getJson('/api/taxonomies/planning-layers')->assertUnauthorized();
         $this->getJson('/api/taxonomies/planning-codes')->assertUnauthorized();
     }
 
-    public function test_planning_controls_at_point_requires_coordinates(): void
+    public function test_planning_controls_at_point_is_public_and_requires_coordinates(): void
     {
-        Sanctum::actingAs(new User(['email' => 'tester@example.com']));
-
         $this->getJson('/api/planning-controls/at-point')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['lat', 'lng']);

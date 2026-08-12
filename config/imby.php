@@ -33,6 +33,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Activity logging
+    |--------------------------------------------------------------------------
+    |
+    | Application detail views are written to users_log (action = "application").
+    | Signed-in views attribute to the Sanctum user. Guest views use nullable
+    | user_id by default (keeps Saved → Recent clean). Optionally set
+    | ACTIVITY_ANONYMOUS_USER_ID to a real users.id bucket for simpler SQL.
+    |
+    */
+
+    'activity' => [
+        'log_anonymous_application_views' => (bool) env('ACTIVITY_LOG_ANONYMOUS_VIEWS', true),
+        'anonymous_user_id' => ($id = env('ACTIVITY_ANONYMOUS_USER_ID')) !== null && $id !== ''
+            ? (int) $id
+            : null,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Map marker limit
     |--------------------------------------------------------------------------
     |

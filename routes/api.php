@@ -35,6 +35,12 @@ Route::get('/status', StatusController::class);
 Route::get('/map/markers', [MapController::class, 'markers']);
 Route::get('/authorities/coverage', [AuthorityController::class, 'coverage']);
 
+// Public application detail (and supporting reads used by the detail page)
+Route::get('/applications/{application}', [ApplicationController::class, 'show']);
+Route::post('/applications/{application}/view', [ApplicationController::class, 'view']);
+Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
+Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
+
 // Public geocoding (OSM Nominatim via server cache + throttle)
 Route::middleware('throttle:geocode')->group(function () {
     Route::get('/geocode', [GeocodeController::class, 'search']);
@@ -167,7 +173,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}/certifiers', [ApplicationController::class, 'certifiers']);
     Route::post('/applications/{application}/claim', [ApplicationClaimController::class, 'store']);
     Route::delete('/applications/{application}/claim', [ApplicationClaimController::class, 'destroy']);
-    Route::get('/applications/{application}', [ApplicationController::class, 'show']);
 
     // Contacts (people / organisations on applications)
     Route::get('/contacts', [ContactController::class, 'index']);
@@ -190,7 +195,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Location endpoints
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/locations/{location}', [LocationController::class, 'show']);
-    Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 
     // Facilities (transport, education, …)
     Route::get('/facilities', [FacilityController::class, 'index']);
@@ -200,7 +204,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Principal planning controls (zoning, FSR, height, …)
     Route::get('/planning-controls', [PlanningControlController::class, 'index']);
-    Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
     Route::get('/planning-controls/{planningControl}', [PlanningControlController::class, 'show']);
 
     // Stats, charts, and forecasts

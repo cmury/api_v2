@@ -78,18 +78,36 @@ class ApplicationController extends Controller
             }
         }
 
+        // Optional Sanctum user (route is public; Bearer token still attributes a view).
+        // Guests are logged too (nullable user_id, or ACTIVITY_ANONYMOUS_USER_ID bucket).
         /** @var User|null $user */
-        $user = $request->user();
-        if ($user instanceof User) {
-            $this->activityLogger->logOnce(
-                $user,
-                UserActivityLogger::APPLICATION_VIEWED,
-                ['application_id' => $application->id],
-                $application,
-            );
-        }
+        $user = $request->user('sanctum');
+        $this->activityLogger->logApplicationView(
+            $user instanceof User ? $user : null,
+            $application,
+            $request,
+        );
 
         return new ApplicationResource($application);
+    }
+
+    /**
+     * Lightweight public view beacon (Explore list / map select).
+     * Deduped with show() via logOnce — safe to call before navigating to detail.
+     */
+    public function view(Request $request, Application $application): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $request->user('sanctum');
+        $this->activityLogger->logApplicationView(
+            $user instanceof User ? $user : null,
+            $application,
+            $request,
+        );
+
+        return response()->json([
+            'message' => 'application_viewed',
+        ]);
     }
 
     public function legislations(Application $application): AnonymousResourceCollection
