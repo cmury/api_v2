@@ -41,6 +41,10 @@ Route::post('/applications/{application}/view', [ApplicationController::class, '
 Route::get('/locations/{location}/applications', [LocationController::class, 'applications']);
 Route::get('/planning-controls/at-point', [PlanningControlController::class, 'atPoint']);
 
+// Public shareable links for searches and applications
+Route::post('/search/share', [MapController::class, 'share']);
+Route::post('/applications/{application}/share', [ApplicationController::class, 'share']);
+
 // Public geocoding (OSM Nominatim via server cache + throttle)
 Route::middleware('throttle:geocode')->group(function () {
     Route::get('/geocode', [GeocodeController::class, 'search']);

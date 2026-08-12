@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'stripe/*',
             'api/reports/stripe/webhook',
             'api/applications/*/view',
+            'api/applications/*/share',
+            'api/search/share',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

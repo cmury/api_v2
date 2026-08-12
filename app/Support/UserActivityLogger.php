@@ -49,6 +49,12 @@ final class UserActivityLogger
     /** Viewed an application detail (legacy action name: application). */
     public const APPLICATION_VIEWED = 'application';
 
+    /** Shared an application link (list row, detail chrome, etc.). */
+    public const APPLICATION_SHARED = 'application_shared';
+
+    /** Shared the current search / map parameters. */
+    public const SEARCH_SHARED = 'search_shared';
+
     public const MAP_CSV_EXPORTED = 'map_csv_exported';
 
     public const PORTFOLIO_ITEM_ADDED = 'portfolio_item_added';
@@ -164,22 +170,86 @@ final class UserActivityLogger
         ?Request $request = null,
         ?array $extraPayload = null,
     ): ?UserLog {
-        $applicationId = $application->getKey();
-        $basePayload = array_merge(
-            ['application_id' => $applicationId],
-            $extraPayload ?? [],
+        return $this->logPublicActivity(
+            $user,
+            self::APPLICATION_VIEWED,
+            $request,
+            array_merge(
+                ['application_id' => $application->getKey()],
+                $extraPayload ?? [],
+            ),
+            $application,
+            config('imby.activity.log_anonymous_application_views', true),
         );
+    }
 
+    /**
+     * Record that someone shared an application link.
+     *
+     * @param  array<string, mixed>|null  $extraPayload
+     */
+    public function logApplicationShare(
+        ?User $user,
+        Model $application,
+        ?Request $request = null,
+        ?array $extraPayload = null,
+    ): ?UserLog {
+        return $this->logPublicActivity(
+            $user,
+            self::APPLICATION_SHARED,
+            $request,
+            array_merge(
+                ['application_id' => $application->getKey()],
+                $extraPayload ?? [],
+            ),
+            $application,
+            config('imby.activity.log_anonymous_shares', true),
+        );
+    }
+
+    /**
+     * Record that someone shared the current search / map URL.
+     *
+     * @param  array<string, mixed>|null  $extraPayload
+     */
+    public function logSearchShare(
+        ?User $user,
+        ?Request $request = null,
+        ?array $extraPayload = null,
+    ): ?UserLog {
+        return $this->logPublicActivity(
+            $user,
+            self::SEARCH_SHARED,
+            $request,
+            $extraPayload ?? [],
+            null,
+            config('imby.activity.log_anonymous_shares', true),
+        );
+    }
+
+    /**
+     * Signed-in or anonymous (when enabled) activity with short-window de-dupe.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function logPublicActivity(
+        ?User $user,
+        string $action,
+        ?Request $request,
+        array $payload,
+        ?Model $actionable,
+        bool $allowAnonymous,
+    ): ?UserLog {
         if ($user instanceof User) {
             return $this->logOnce(
                 $user,
-                self::APPLICATION_VIEWED,
-                $basePayload,
-                $application,
+                $action,
+                $payload,
+                $actionable,
             );
         }
 
-        if (! config('imby.activity.log_anonymous_application_views', true)) {
+        if (! $allowAnonymous) {
             return null;
         }
 
@@ -192,13 +262,13 @@ final class UserActivityLogger
         }
 
         $bucket = $this->anonymousBucketUser();
-        $payload = array_merge($basePayload, ['anonymous' => true]);
+        $anonymousPayload = array_merge($payload, ['anonymous' => true]);
 
         return $this->logOnce(
             $bucket,
-            self::APPLICATION_VIEWED,
-            $payload,
-            $application,
+            $action,
+            $anonymousPayload,
+            $actionable,
             onceScope: $fingerprint,
         );
     }

@@ -38,6 +38,19 @@ class WarehouseEndpointsTest extends TestCase
         $this->assertNotSame(401, $this->postJson('/api/applications/1/view')->status());
     }
 
+    public function test_application_share_beacon_is_public(): void
+    {
+        $this->assertNotSame(401, $this->postJson('/api/applications/1/share')->status());
+    }
+
+    public function test_search_share_beacon_is_public(): void
+    {
+        $this->assertNotSame(401, $this->postJson('/api/search/share', [
+            'search' => '?z=14',
+            'source' => 'map',
+        ])->status());
+    }
+
     public function test_location_applications_is_public(): void
     {
         $this->assertNotSame(401, $this->getJson('/api/locations/1/applications')->status());

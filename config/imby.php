@@ -37,7 +37,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Application detail views are written to users_log (action = "application").
-    | Signed-in views attribute to the Sanctum user. Guest views use nullable
+    | Share beacons use action = "application_shared" / "search_shared".
+    | Signed-in events attribute to the Sanctum user. Guest events use nullable
     | user_id by default (keeps Saved → Recent clean). Optionally set
     | ACTIVITY_ANONYMOUS_USER_ID to a real users.id bucket for simpler SQL.
     |
@@ -45,6 +46,7 @@ return [
 
     'activity' => [
         'log_anonymous_application_views' => (bool) env('ACTIVITY_LOG_ANONYMOUS_VIEWS', true),
+        'log_anonymous_shares' => (bool) env('ACTIVITY_LOG_ANONYMOUS_SHARES', true),
         'anonymous_user_id' => ($id = env('ACTIVITY_ANONYMOUS_USER_ID')) !== null && $id !== ''
             ? (int) $id
             : null,

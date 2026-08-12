@@ -110,6 +110,29 @@ class ApplicationController extends Controller
         ]);
     }
 
+    /**
+     * Lightweight public share beacon (list row / detail chrome).
+     */
+    public function share(Request $request, Application $application): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $request->user('sanctum');
+        $this->activityLogger->logApplicationShare(
+            $user instanceof User ? $user : null,
+            $application,
+            $request,
+            array_filter([
+                'source' => $request->string('source')->toString() ?: null,
+                'result' => $request->string('result')->toString() ?: null,
+                'url' => $request->string('url')->toString() ?: null,
+            ], static fn ($value) => $value !== null && $value !== ''),
+        );
+
+        return response()->json([
+            'message' => 'application_shared',
+        ]);
+    }
+
     public function legislations(Application $application): AnonymousResourceCollection
     {
         return LegislationResource::collection(

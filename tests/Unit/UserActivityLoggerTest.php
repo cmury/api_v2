@@ -29,4 +29,15 @@ class UserActivityLoggerTest extends TestCase
         $this->assertTrue(config('imby.activity.log_anonymous_application_views'));
         $this->assertNull(config('imby.activity.anonymous_user_id'));
     }
+
+    public function test_anonymous_shares_config_defaults_on(): void
+    {
+        $this->assertTrue(config('imby.activity.log_anonymous_shares'));
+    }
+
+    public function test_share_action_constants(): void
+    {
+        $this->assertSame('application_shared', UserActivityLogger::APPLICATION_SHARED);
+        $this->assertSame('search_shared', UserActivityLogger::SEARCH_SHARED);
+    }
 }

@@ -11,6 +11,7 @@ use App\Support\Warehouse\GeoJson;
 use App\Support\Warehouse\MapCsvExport;
 use App\Support\Warehouse\MapMarkerQuery;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MapController extends Controller
@@ -31,6 +32,29 @@ class MapController extends Controller
         $rows = $this->mapMarkerQuery->search($filter);
 
         return response()->json(GeoJson::featureCollection($rows));
+    }
+
+    /**
+     * Lightweight public beacon when someone shares the current search / map URL.
+     */
+    public function share(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $request->user('sanctum');
+        $this->activityLogger->logSearchShare(
+            $user instanceof User ? $user : null,
+            $request,
+            array_filter([
+                'source' => $request->string('source')->toString() ?: null,
+                'result' => $request->string('result')->toString() ?: null,
+                'url' => $request->string('url')->toString() ?: null,
+                'search' => $request->string('search')->toString() ?: null,
+            ], static fn ($value) => $value !== null && $value !== ''),
+        );
+
+        return response()->json([
+            'message' => 'search_shared',
+        ]);
     }
 
     /**
