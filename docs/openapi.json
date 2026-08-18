@@ -10818,7 +10818,7 @@
                         "type": "array",
                         "items": {}
                     },
-                    "parcel_raw": {
+                    "parcel": {
                         "type": [
                             "array",
                             "null"
@@ -10865,7 +10865,7 @@
                     "post_code",
                     "country",
                     "location_raw",
-                    "parcel_raw",
+                    "parcel",
                     "created_at",
                     "updated_at"
                 ],

@@ -108,6 +108,36 @@ class WarehouseFilterTest extends TestCase
         $this->assertSame('act-dafinder', $filter->source);
     }
 
+    public function test_default_estvalue_range_is_unbounded(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'estvalue' => ['low' => 0, 'high' => 10_000_000_000],
+        ]);
+
+        $this->assertNull($filter->estimatedCostMin);
+        $this->assertNull($filter->estimatedCostMax);
+    }
+
+    public function test_over_five_million_keeps_min_and_drops_sentinel_max(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'estvalue' => ['low' => 5_000_000, 'high' => 10_000_000_000],
+        ]);
+
+        $this->assertSame(5_000_000.0, $filter->estimatedCostMin);
+        $this->assertNull($filter->estimatedCostMax);
+    }
+
+    public function test_under_five_hundred_thousand_keeps_max_and_drops_zero_min(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'estvalue' => ['low' => 0, 'high' => 500_000],
+        ]);
+
+        $this->assertNull($filter->estimatedCostMin);
+        $this->assertSame(500_000.0, $filter->estimatedCostMax);
+    }
+
     public function test_chart_rejects_unknown_format(): void
     {
         $this->expectException(InvalidArgumentException::class);

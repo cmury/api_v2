@@ -22,6 +22,7 @@ return [
         'Light',
         'Street',
         'Dark',
+        'Toner',
         'Satellite',
         'ROADMAP',
         'SATELLITE',

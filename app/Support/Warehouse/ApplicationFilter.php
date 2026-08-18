@@ -14,6 +14,12 @@ use Carbon\CarbonInterface;
 final class ApplicationFilter
 {
     /**
+     * Explore "All Values" ceiling. A max at or above this is treated as unbounded
+     * so unknown costs (null estimated_cost, e.g. ACT DA Finder) stay visible.
+     */
+    public const UNBOUNDED_ESTIMATED_COST = 10_000_000_000.0;
+
+    /**
      * @param  list<float>|null  $bounds  [latMax, lngMax, latMin, lngMin]
      * @param  list<int>|null  $applicationClassIds
      * @param  list<int>|null  $developmentClassIds
@@ -72,14 +78,18 @@ final class ApplicationFilter
         }
 
         $est = is_array($input['estvalue'] ?? null) ? $input['estvalue'] : [];
+        [$costMin, $costMax] = self::costBounds(
+            self::floatOrNull($input['estimated_cost_min'] ?? $est['low'] ?? null),
+            self::floatOrNull($input['estimated_cost_max'] ?? $est['high'] ?? null),
+        );
 
         return new self(
             bounds: $bounds,
             applicationClassIds: self::idList($input['application_class_ids'] ?? $input['app'] ?? null),
             developmentClassIds: self::idList($input['development_class_ids'] ?? $input['type'] ?? null),
             decisionClassIds: self::idList($input['decision_class_ids'] ?? $input['status'] ?? null),
-            estimatedCostMin: self::floatOrNull($input['estimated_cost_min'] ?? $est['low'] ?? null),
-            estimatedCostMax: self::floatOrNull($input['estimated_cost_max'] ?? $est['high'] ?? null),
+            estimatedCostMin: $costMin,
+            estimatedCostMax: $costMax,
             submittedFrom: $from,
             submittedTo: $to,
             state: self::stringOrNull($input['state'] ?? null),
@@ -151,6 +161,25 @@ final class ApplicationFilter
         $ids = array_values(array_unique(array_map('intval', $value)));
 
         return $ids === [] ? null : $ids;
+    }
+
+    /**
+     * Drop the Explore default $0–$10b range. `estimated_cost >= 0` / `<= 10b`
+     * excludes NULL costs, which hides every ACT DA Finder row.
+     *
+     * @return array{0: float|null, 1: float|null}
+     */
+    private static function costBounds(?float $min, ?float $max): array
+    {
+        if ($min !== null && $min <= 0) {
+            $min = null;
+        }
+
+        if ($max !== null && $max >= self::UNBOUNDED_ESTIMATED_COST) {
+            $max = null;
+        }
+
+        return [$min, $max];
     }
 
     private static function floatOrNull(mixed $value): ?float

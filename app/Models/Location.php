@@ -24,7 +24,7 @@ class Location extends Model
     {
         return [
             'location_raw' => 'array',
-            'parcel_raw' => 'array',
+            'parcel' => 'array',
             'payload' => 'array',
         ];
     }
