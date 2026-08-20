@@ -7,6 +7,7 @@ use App\Models\Location;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Applies {@see ApplicationFilter} to application / location queries.
@@ -104,12 +105,14 @@ final class ApplicationQuery
         }
 
         if ($filter->applicationClassIds !== null) {
-            $query->whereExists(function ($q) use ($filter, $appsTable): void {
+            $applicationClassIds = $this->expandApplicationClassIds($query, $filter->applicationClassIds);
+
+            $query->whereExists(function ($q) use ($applicationClassIds, $appsTable): void {
                 $q->selectRaw('1')
                     ->from('application_application_types as aat')
                     ->join('application_types as at', 'at.id', '=', 'aat.application_type_id')
                     ->whereColumn('aat.application_id', "{$appsTable}.id")
-                    ->whereIn('at.application_class_id', $filter->applicationClassIds);
+                    ->whereIn('at.application_class_id', $applicationClassIds);
             });
         }
 
@@ -271,5 +274,46 @@ final class ApplicationQuery
             && $filter->centerLng !== null
             && $filter->radiusMeters !== null
             && $filter->radiusMeters > 0;
+    }
+
+    /**
+     * Explore sends NSW class ids (e.g. Development Applications = 2). Other
+     * jurisdictions share the same class name with different ids (ACT 13, SA 11).
+     *
+     * @param  Builder<Model>|QueryBuilder  $query
+     * @param  list<int>  $ids
+     * @return list<int>
+     */
+    private function expandApplicationClassIds(Builder|QueryBuilder $query, array $ids): array
+    {
+        $connection = $query->getConnection()->getName();
+
+        if (! Schema::connection($connection)->hasTable('application_classes')) {
+            return $ids;
+        }
+
+        $names = $query->getConnection()
+            ->table('application_classes')
+            ->whereIn('id', $ids)
+            ->whereNotNull('name')
+            ->distinct()
+            ->pluck('name')
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->values();
+
+        if ($names->isEmpty()) {
+            return $ids;
+        }
+
+        $expanded = $query->getConnection()
+            ->table('application_classes')
+            ->whereIn('name', $names->all())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        return $expanded !== [] ? $expanded : $ids;
     }
 }
