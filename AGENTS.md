@@ -45,6 +45,7 @@ API to work.
 - Claims: `/api/user/contact-profile`, `/api/user/claims`, `POST|DELETE /api/applications/{id}/claim`.
 - Portfolio: `/api/contacts/{id}/portfolio` (owner add/remove; published list for others).
 - Favourites: CRUD `/api/user/favourites`.
+- Search alerts: `GET /api/notifications` (Bearer) — GeoJSON of DAs first ingested (`applications.created_at`) since each search’s `last_notified_at`, or the user’s `notification_frequency` window. Mailer: `php artisan notifications:send-search-alerts` (hourly). Schema: `users_searches.last_notified_at` (agents_v2).
 - Analytics: `/api/stats`, `/api/charts`, `/api/forecasts` (volume projections).
 - Taxonomies: `/api/taxonomies/*`. Shared filters live in `App\Support\Warehouse\*`.
 

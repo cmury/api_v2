@@ -15,7 +15,7 @@ class UserPreference extends Model
         'map_type',
         'default_search_id',
         'date_range',
-        'new_application_email_frequency',
+        'notification_frequency',
         'locale',
     ];
 

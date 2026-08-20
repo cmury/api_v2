@@ -31,6 +31,7 @@ class UserSearch extends Model
             'pinned' => 'boolean',
             'lat' => 'float',
             'lng' => 'float',
+            'last_notified_at' => 'datetime',
         ];
     }
 

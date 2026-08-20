@@ -2,10 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\UserSearch;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\UserSearch */
+/** @mixin UserSearch */
 class UserSearchResource extends JsonResource
 {
     /**
@@ -21,6 +22,7 @@ class UserSearchResource extends JsonResource
             'radius' => $this->radius,
             'filter' => $this->filter ?? [],
             'notify' => (bool) $this->notify,
+            'last_notified_at' => $this->last_notified_at,
             'pinned' => (bool) $this->pinned,
             'category' => $this->category,
             'notes' => $this->notes,

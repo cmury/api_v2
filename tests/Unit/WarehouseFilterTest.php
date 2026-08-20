@@ -30,6 +30,18 @@ class WarehouseFilterTest extends TestCase
         DateRange::resolve(['type' => 'custom']);
     }
 
+    public function test_application_filter_accepts_created_from_exclusive(): void
+    {
+        $filter = ApplicationFilter::fromArray([
+            'created_from' => '2026-08-19 08:00:00',
+            'created_from_exclusive' => true,
+        ]);
+
+        $this->assertSame('2026-08-19 08:00:00', $filter->createdFrom?->format('Y-m-d H:i:s'));
+        $this->assertTrue($filter->createdFromExclusive);
+        $this->assertNull($filter->submittedFrom);
+    }
+
     public function test_application_filter_accepts_legacy_map_query_keys(): void
     {
         $filter = ApplicationFilter::fromArray([

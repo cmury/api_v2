@@ -15,7 +15,8 @@ class NotificationController extends Controller
     ) {}
 
     /**
-     * GeoJSON of recent applications matching the user's notify-enabled searches.
+     * GeoJSON of applications first ingested into IMBY since the last
+     * notification (or the user's frequency window), matching notify-enabled searches.
      */
     public function searches(Request $request): JsonResponse
     {

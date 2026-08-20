@@ -130,7 +130,7 @@ class UserController extends Controller
             [
                 'map_type' => 'ROADMAP',
                 'date_range' => 12,
-                'new_application_email_frequency' => config('imby.default_email_frequency', 'weekly'),
+                'notification_frequency' => config('imby.default_notification_frequency', 'weekly'),
                 'locale' => 'AU',
             ]
         );

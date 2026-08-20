@@ -2,6 +2,9 @@
 
 namespace App\Support\Warehouse;
 
+use Carbon\Carbon;
+use DateTimeInterface;
+
 /**
  * Builds GeoJSON FeatureCollections for map / notification responses.
  */
@@ -41,10 +44,11 @@ final class GeoJson
             $data = $row->getAttributes();
             // selectRaw aliases (lat/lng) are present as dynamic props on the model.
             foreach ([
-                'lat', 'lng', 'formatted_address', 'submitted', 'application_count',
+                'lat', 'lng', 'formatted_address', 'submitted', 'created_at', 'application_count',
                 'id', 'location_id', 'location', 'portal_no', 'authority_no', 'type',
                 'description', 'decision', 'estimated_cost', 'development_classes',
                 'decision_classes', 'street_no', 'street', 'suburb', 'state', 'post_code',
+                'search_id', 'search_name',
             ] as $key) {
                 if (! array_key_exists($key, $data) && isset($row->{$key})) {
                     $data[$key] = $row->{$key};
@@ -84,6 +88,9 @@ final class GeoJson
                 'state' => $data['state'] ?? null,
                 'post_code' => $data['post_code'] ?? null,
                 'submitted' => $data['submitted'] ?? null,
+                'created_at' => self::isoTimestamp($data['created_at'] ?? null),
+                'search_id' => isset($data['search_id']) ? (int) $data['search_id'] : null,
+                'search_name' => $data['search_name'] ?? null,
                 'type' => $data['type'] ?? null,
                 'portal_no' => $data['portal_no'] ?? null,
                 'authority_no' => $data['authority_no'] ?? null,
@@ -97,7 +104,6 @@ final class GeoJson
     }
 
     /**
-     * @param  mixed  $classes
      * @return list<array{id: ?int, development_class: mixed, name: mixed, description: mixed, icon: mixed, icon_priority: int}>
      */
     private static function normalizeDevelopmentClasses(mixed $classes): array
@@ -124,7 +130,6 @@ final class GeoJson
     }
 
     /**
-     * @param  mixed  $classes
      * @return list<array{id: ?int, name: mixed, description: mixed}>
      */
     private static function normalizeDecisionClasses(mixed $classes): array
@@ -145,6 +150,23 @@ final class GeoJson
             },
             $classes,
         ));
+    }
+
+    private static function isoTimestamp(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if ($value instanceof DateTimeInterface) {
+            return Carbon::parse($value)->toIso8601String();
+        }
+
+        try {
+            return Carbon::parse((string) $value)->toIso8601String();
+        } catch (\Throwable) {
+            return (string) $value;
+        }
     }
 
     public static function stripCountry(?string $address): ?string

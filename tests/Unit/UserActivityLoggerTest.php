@@ -39,5 +39,6 @@ class UserActivityLoggerTest extends TestCase
     {
         $this->assertSame('application_shared', UserActivityLogger::APPLICATION_SHARED);
         $this->assertSame('search_shared', UserActivityLogger::SEARCH_SHARED);
+        $this->assertSame('notification', UserActivityLogger::NOTIFICATION);
     }
 }

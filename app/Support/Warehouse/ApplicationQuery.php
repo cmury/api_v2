@@ -73,6 +73,18 @@ final class ApplicationQuery
             $query->whereDate("{$appsTable}.submitted", '<=', $filter->submittedTo->toDateString());
         }
 
+        if ($filter->createdFrom !== null) {
+            $query->where(
+                "{$appsTable}.created_at",
+                $filter->createdFromExclusive ? '>' : '>=',
+                $filter->createdFrom,
+            );
+        }
+
+        if ($filter->createdTo !== null) {
+            $query->where("{$appsTable}.created_at", '<=', $filter->createdTo);
+        }
+
         if ($filter->estimatedCostMin !== null) {
             $query->where("{$appsTable}.estimated_cost", '>=', $filter->estimatedCostMin);
         }
@@ -199,6 +211,9 @@ final class ApplicationQuery
                 estimatedCostMax: $filter->estimatedCostMax,
                 submittedFrom: $filter->submittedFrom,
                 submittedTo: $filter->submittedTo,
+                createdFrom: $filter->createdFrom,
+                createdTo: $filter->createdTo,
+                createdFromExclusive: $filter->createdFromExclusive,
                 state: $filter->state,
                 authorityId: $filter->authorityId,
                 locationId: null,

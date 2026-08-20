@@ -11315,16 +11315,18 @@
                         "minimum": 1,
                         "maximum": 120
                     },
-                    "new_application_email_frequency": {
+                    "notification_frequency": {
                         "type": [
                             "string",
                             "null"
                         ],
                         "enum": [
+                            "immediately",
                             "daily",
                             "weekly",
                             "fortnightly",
                             "monthly",
+                            "never",
                             null
                         ]
                     },
@@ -11521,7 +11523,7 @@
                     "date_range": {
                         "type": "integer"
                     },
-                    "new_application_email_frequency": {
+                    "notification_frequency": {
                         "type": "string"
                     },
                     "locale": {
@@ -11540,7 +11542,7 @@
                     "map_type",
                     "default_search_id",
                     "date_range",
-                    "new_application_email_frequency",
+                    "notification_frequency",
                     "locale",
                     "updated_at"
                 ],

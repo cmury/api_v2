@@ -34,6 +34,8 @@ final class UserActivityLogger
 
     public const SEARCH_DELETED = 'search_deleted';
 
+    public const NOTIFICATION = 'notification';
+
     public const FAVOURITE_CREATED = 'favourite_created';
 
     public const FAVOURITE_UPDATED = 'favourite_updated';

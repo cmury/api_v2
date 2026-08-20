@@ -72,7 +72,7 @@ docker compose exec app php artisan scramble:export
 
 Register body: `name`, `surname`, `email`, `password`, `password_confirmation`, optional `company` / `mobile`.
 
-Settings body (all optional): `map_type`, `date_range`, `new_application_email_frequency`, `locale`, `default_search_id`.
+Settings body (all optional): `map_type`, `date_range`, `notification_frequency`, `locale`, `default_search_id`.
 
 Saved search body: `name`, `lat`, `lng`, `radius`, `notify`, optional `filter` (object).
 
@@ -100,7 +100,7 @@ Activity log query: `?filter=&per_page=15&page=1`.
 | GET | `/api/locations` | Bearer — search/filter, `state`, `suburb`, `authority_id` |
 | GET | `/api/locations/{id}` | Bearer |
 | GET | `/api/locations/{id}/applications` | Bearer |
-| GET | `/api/notifications` | Bearer — GeoJSON for notify-enabled searches |
+| GET | `/api/notifications` | Bearer — GeoJSON of DAs first ingested into IMBY since `last_notified_at` (or the user's frequency window) for notify-enabled searches. Extra keys: `frequency`, `since`. Features include `search_id` / `search_name` / `created_at`. |
 | GET | `/api/stats?metric=` | Bearer |
 | GET | `/api/charts?metric=&format=` | Bearer |
 | GET | `/api/forecasts` | Bearer — application volume forecast (`state`, `suburb`, `authority_id`, `group_by`) |
@@ -174,3 +174,13 @@ Login / protected routes use `Authorization: Bearer {token}`.
 Users live in `imby_data_v2.users` (schema owned by agents_v2).
 
 Auth activity is written to `users_log` for: `login`, `logout`, `password_changed`, `password_reset`, `profile_updated`, `settings_updated`, `search_created`, `search_updated`, `search_deleted`.
+
+Saved-search email alerts (new-to-IMBY DAs matching `notify` searches):
+
+```bash
+docker compose exec app php artisan notifications:send-search-alerts
+docker compose exec app php artisan notifications:send-search-alerts --dry-run
+docker compose exec app php artisan notifications:send-search-alerts --user=1
+```
+
+Scheduled hourly. Requires `users_searches.last_notified_at` (migrate in `agents_v2`) and `FRONTEND_URL` for application links. `GET /api/notifications` does not send mail or stamp the watermark.

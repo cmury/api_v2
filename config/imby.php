@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'email_frequencies' => [
+    'notification_frequencies' => [
         'immediately',
         'daily',
         'weekly',
@@ -30,7 +30,22 @@ return [
         'TERRAIN',
     ],
 
-    'default_email_frequency' => 'weekly',
+    'default_notification_frequency' => 'weekly',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Saved-search email alerts
+    |--------------------------------------------------------------------------
+    |
+    | GET /api/notifications is the matcher. notifications:send-search-alerts
+    | emails new-to-IMBY DAs and stamps users_searches.last_notified_at.
+    |
+    */
+
+    'search_alerts' => [
+        'per_search_limit' => (int) env('SEARCH_ALERT_PER_SEARCH_LIMIT', 20),
+        'frontend_url' => env('FRONTEND_URL', 'http://localhost:5174'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

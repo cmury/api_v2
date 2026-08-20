@@ -38,6 +38,9 @@ final class ApplicationFilter
         public readonly ?float $estimatedCostMax = null,
         public readonly ?CarbonInterface $submittedFrom = null,
         public readonly ?CarbonInterface $submittedTo = null,
+        public readonly ?CarbonInterface $createdFrom = null,
+        public readonly ?CarbonInterface $createdTo = null,
+        public readonly bool $createdFromExclusive = false,
         public readonly ?string $state = null,
         public readonly ?int $authorityId = null,
         public readonly ?int $locationId = null,
@@ -77,6 +80,14 @@ final class ApplicationFilter
                 : null;
         }
 
+        $createdFrom = ! empty($input['created_from'])
+            ? Carbon::parse($input['created_from'])
+            : null;
+        $createdTo = ! empty($input['created_to'])
+            ? Carbon::parse($input['created_to'])
+            : null;
+        $createdFromExclusive = filter_var($input['created_from_exclusive'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         $est = is_array($input['estvalue'] ?? null) ? $input['estvalue'] : [];
         [$costMin, $costMax] = self::costBounds(
             self::floatOrNull($input['estimated_cost_min'] ?? $est['low'] ?? null),
@@ -92,6 +103,9 @@ final class ApplicationFilter
             estimatedCostMax: $costMax,
             submittedFrom: $from,
             submittedTo: $to,
+            createdFrom: $createdFrom,
+            createdTo: $createdTo,
+            createdFromExclusive: $createdFromExclusive,
             state: self::stringOrNull($input['state'] ?? null),
             authorityId: self::intOrNull($input['authority_id'] ?? null),
             locationId: self::intOrNull($input['location_id'] ?? null),

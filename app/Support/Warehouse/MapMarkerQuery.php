@@ -54,6 +54,7 @@ final class MapMarkerQuery
                 'a.description',
                 'a.estimated_cost',
                 'a.submitted',
+                'a.created_at',
                 'a.decision',
                 'l.id as location_id',
                 'l.formatted_address',
